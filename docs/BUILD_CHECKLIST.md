@@ -16,7 +16,7 @@
 
 ## Phase 2 — Agent Team
 - [ ] Market Research Agent
-- [ ] Product Research Agent
+- [x] Product Opportunity & Evidence Agent
 - [ ] Shopify Product Agent
 - [ ] SEO & Copy Agent
 - [ ] Creative/Content Agent
@@ -27,6 +27,7 @@
 - [ ] Experiment/Testing Agent
 - [ ] Supplier Agent
 - [ ] Agent Manager
+- [x] Content Selection Gate — evidence required before video creation
 
 ## Phase 3 — Shopify
 - [ ] Connect Shopify API
