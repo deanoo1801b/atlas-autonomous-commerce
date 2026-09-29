@@ -103,3 +103,13 @@
 - [ ] Track £500,000
 - [ ] Track £1,000,000
 - [ ] Distinguish revenue vs profit at every stage
+
+## Phase 5A — Social Media Management
+- [ ] Social Media Manager Agent — daily monitoring of connected channels
+- [ ] Daily content calendar health check
+- [ ] Daily post/publishing status check
+- [ ] Daily engagement and audience signal review
+- [ ] Daily social traffic and conversion signal review
+- [ ] Cross-channel issues/failed-post detection
+- [ ] Link social performance to Shopify/commerce analytics
+- [ ] Generate daily social media report for ATLAS
