@@ -7,12 +7,12 @@
 - [x] Identify Atlas Goods Store as the primary store
 - [x] Confirm Shopify connection
 - [x] Confirm GitHub connection
-- [x] Create private GitHub repository
+- [x] Create GitHub repository (visibility currently public; private conversion requires owner approval)
 - [x] Create ATLAS repository
 - [x] Create initial project structure
 - [x] Create master agent instructions
-- [ ] Create configuration/environment system
-- [ ] Create logging and audit system
+- [x] Create configuration/environment system
+- [x] Create logging and audit system
 
 ## Phase 2 — Agent Team
 - [ ] Market Research Agent
@@ -26,7 +26,7 @@
 - [ ] Growth Agent
 - [ ] Experiment/Testing Agent
 - [ ] Supplier Agent
-- [ ] Agent Manager
+- [x] Agent Manager
 - [x] Content Selection Gate — evidence required before video creation
 
 ## Phase 3 — Shopify
@@ -114,3 +114,13 @@
 - [ ] Cross-channel issues/failed-post detection
 - [ ] Link social performance to Shopify/commerce analytics
 - [ ] Generate daily social media report for ATLAS
+
+
+## Phase 1B — ATLAS Runtime Infrastructure
+- [x] Create typed runtime configuration
+- [x] Define safety defaults: dry-run and approval gates
+- [x] Create structured audit event model
+- [x] Create initial agent registry
+- [ ] Persist audit events
+- [ ] Build orchestration/task runner
+- [ ] Add agent health/status tracking
