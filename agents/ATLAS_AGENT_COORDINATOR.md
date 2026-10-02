@@ -40,3 +40,20 @@ IN PROGRESS
 BLOCKED
 REQUIRES USER ACTION
 NEXT ACTION
+
+
+## Extended Specialist Layer
+
+After the core pipeline, the coordinator routes specialist signals into the Opportunity Report and Decision Gate:
+- Competitor Intelligence
+- Customer Demand & Question Mining
+- SEO Opportunity Intelligence
+- Pricing & Margin Intelligence
+- Fulfilment & Delivery Intelligence
+- Revenue & Profit Intelligence
+- Customer Support & Review Intelligence
+- Email & Retention
+- Product Bundling & Recommendations
+- Product Lifecycle
+
+These specialists do not bypass approval gates. They research, score evidence quality, prepare recommendations and feed the central Opportunity Report.
