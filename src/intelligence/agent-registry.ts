@@ -2,14 +2,24 @@ import type { AgentDefinition } from "../core/types.js";
 
 export const intelligenceAgents: AgentDefinition[] = [
   {
-    id: "global-trends",
-    name: "Global Trends & Demand Intelligence",
-    purpose: "Identify rising demand, seasonality, search intent and cross-platform trend signals.",
+    id: "global-trend-scanner",
+    name: "Global Trend Scanner",
+    purpose: "Collect and score early demand signals across major search, marketplace and social trend surfaces.",
     risk: "low",
     status: "ready",
     requiresApproval: false,
-    capabilities: ["trend-research", "seasonality", "demand-signals", "keyword-signals"],
+    capabilities: ["google-trends", "tiktok", "etsy", "amazon", "pinterest", "youtube", "instagram", "reddit", "google-search", "ebay"],
     dependsOn: []
+  },
+  {
+    id: "global-trends",
+    name: "Global Trends & Demand Intelligence",
+    purpose: "Interpret corroborated trend signals, seasonality, search intent and demand patterns.",
+    risk: "low",
+    status: "ready",
+    requiresApproval: false,
+    capabilities: ["trend-analysis", "seasonality", "demand-signals", "keyword-signals"],
+    dependsOn: ["global-trend-scanner"]
   },
   {
     id: "product-opportunity",
