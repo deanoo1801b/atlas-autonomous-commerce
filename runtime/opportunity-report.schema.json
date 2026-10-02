@@ -1,0 +1,25 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"ATLAS Opportunity Report Record",
+  "type":"object",
+  "required":["opportunity_id","created_at","updated_at","project","product_or_topic","product_type","market","channel","status","evidence","confidence","eligibility_verified","availability_verified","approval_required"],
+  "properties":{
+    "opportunity_id":{"type":"string"},
+    "created_at":{"type":"string","format":"date-time"},
+    "updated_at":{"type":"string","format":"date-time"},
+    "project":{"type":"string"},
+    "product_or_topic":{"type":"string"},
+    "product_type":{"enum":["DIGITAL","GODROPSHIP","GELATO","OTHER"]},
+    "market":{"type":"string"},
+    "channel":{"type":"string"},
+    "status":{"enum":["NEW","TEST","HOLD","BLOCKED","ARCHIVED"]},
+    "evidence":{"type":"array"},
+    "confidence":{"enum":["LOW","MEDIUM","HIGH"]},
+    "eligibility_verified":{"type":"boolean"},
+    "availability_verified":{"type":"boolean"},
+    "url":{"type":"string"},
+    "content_angle":{"type":"string"},
+    "test_hypothesis":{"type":"string"},
+    "approval_required":{"type":"boolean"}
+  }
+}
