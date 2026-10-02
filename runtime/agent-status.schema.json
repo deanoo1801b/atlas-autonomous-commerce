@@ -1,0 +1,14 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"ATLAS Agent Status",
+  "type":"object",
+  "required":["agent_id","status","last_checked"],
+  "properties":{
+    "agent_id":{"type":"string"},
+    "status":{"type":"string","enum":["READY","RUNNING","BLOCKED","ERROR","DISABLED","AWAITING_APPROVAL"]},
+    "last_checked":{"type":"string","format":"date-time"},
+    "last_success":{"type":"string","format":"date-time"},
+    "message":{"type":"string"},
+    "dependencies":{"type":"array","items":{"type":"string"}}
+  }
+}
