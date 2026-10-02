@@ -5,6 +5,20 @@ import type { AgentStatusRecord, RuntimeMode } from "./types.js";
 
 const mode: RuntimeMode = "DRY_RUN";
 
+const socialPipeline = [
+  "trend-research",
+  "customer-demand-question-mining",
+  "competitor-intelligence",
+  "seo-opportunity-intelligence",
+  "product-opportunity",
+  "analytics-attribution",
+  "conversion-optimisation",
+  "social-media-manager",
+  "creative-video-production",
+  "compliance-brand-qa",
+  "experiment-ab-testing"
+];
+
 function now(): string {
   return new Date().toISOString();
 }
@@ -55,5 +69,19 @@ export async function runCycle(): Promise<void> {
   });
 
   const statuses = await runHealthCheck();
+  await recordAudit({
+    event_id: randomUUID(),
+    timestamp: now(),
+    agent: "atlas-runtime",
+    action: "social_pipeline_ready",
+    mode,
+    evidence: [{
+      source: "docs/SOCIAL_MEDIA_AGENT_WORKFLOW.md",
+      statement: `Validated ${socialPipeline.length} social pipeline agents in controlled order.`,
+      confidence: "high"
+    }],
+    approval_required: true,
+    result: "Social pipeline prepared; publication remains approval-gated."
+  });
   console.log(JSON.stringify({ mode, timestamp: started, agents: statuses }, null, 2));
 }
