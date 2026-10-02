@@ -121,9 +121,9 @@
 - [x] Define safety defaults: dry-run and approval gates
 - [x] Create structured audit event model
 - [x] Create initial agent registry
-- [ ] Persist audit events
-- [ ] Build orchestration/task runner
-- [ ] Add agent health/status tracking
+- [x] Persist audit events
+- [x] Build orchestration/task runner
+- [x] Add agent health/status tracking
 
 
 ## Autonomous Commerce Specialist Layer
@@ -131,3 +131,15 @@
 The specialist layer is now defined for competitor intelligence, customer demand mining, SEO opportunities, pricing/margin, fulfilment, revenue/profit, customer support/reviews, email retention, bundling/recommendations and product lifecycle management.
 
 All specialist outputs feed the central Opportunity Report and ATLAS Decision Gate rather than operating as uncontrolled independent publishers.
+
+## Phase 1C — Executable Runtime
+- [x] Implement dry-run runtime entrypoint
+- [x] Implement central agent registry
+- [x] Implement JSONL audit-event persistence
+- [x] Implement agent health/status checks
+- [x] Enforce dry-run as the runtime default
+- [ ] Add read-only Shopify/Metricool adapters
+- [ ] Add Opportunity Report persistence
+- [ ] Add scheduled scanner execution
+- [ ] Add approval queue persistence
+- [ ] Add experiment/result persistence
