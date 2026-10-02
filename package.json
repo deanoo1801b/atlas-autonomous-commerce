@@ -11,7 +11,8 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "build": "tsc",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "runtime": "tsx src/runtime/index.ts"
   },
   "dependencies": {},
   "devDependencies": {
