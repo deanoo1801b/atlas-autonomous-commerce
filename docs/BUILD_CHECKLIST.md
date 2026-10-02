@@ -124,3 +124,10 @@
 - [ ] Persist audit events
 - [ ] Build orchestration/task runner
 - [ ] Add agent health/status tracking
+
+
+## Autonomous Commerce Specialist Layer
+
+The specialist layer is now defined for competitor intelligence, customer demand mining, SEO opportunities, pricing/margin, fulfilment, revenue/profit, customer support/reviews, email retention, bundling/recommendations and product lifecycle management.
+
+All specialist outputs feed the central Opportunity Report and ATLAS Decision Gate rather than operating as uncontrolled independent publishers.
