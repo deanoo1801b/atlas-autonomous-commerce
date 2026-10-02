@@ -1,0 +1,17 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"ATLAS Audit Event",
+  "type":"object",
+  "required":["event_id","timestamp","agent","action","mode","evidence","approval_required"],
+  "properties":{
+    "event_id":{"type":"string"},
+    "timestamp":{"type":"string","format":"date-time"},
+    "agent":{"type":"string"},
+    "action":{"type":"string"},
+    "mode":{"type":"string","enum":["DRY_RUN","APPROVAL_REQUIRED","EXECUTE"]},
+    "evidence":{"type":"array","items":{"type":"object","required":["source","statement"],"properties":{"source":{"type":"string"},"statement":{"type":"string"},"confidence":{"type":"string"}}}},
+    "approval_required":{"type":"boolean"},
+    "result":{"type":"string"},
+    "error":{"type":"string"}
+  }
+}
