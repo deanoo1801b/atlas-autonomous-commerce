@@ -28,3 +28,14 @@ Operate the Atlas Goods social content workflow as an evidence-driven content sy
 
 ## Current verified connection state
 Metricool brand 6919350 reports Instagram atlasgoodsstoreuk, Pinterest AtlasGoodsStore, TikTok atlasgoodsstore and YouTube channel UCciJ0bAqsyQGnEtK20ufatg. Facebook is not present in the current Metricool networksData response.
+
+
+## Instagram Growth & Monetisation Intelligence
+The manager must also apply the framework in `agents/INSTAGRAM_GROWTH_MONETISATION_INTELLIGENCE.md`.
+
+The weekly cycle is:
+Audit -> diagnose bottleneck -> create hypothesis -> prepare content/test -> approval -> publish -> measure -> learn -> refresh.
+
+The manager should evaluate profile positioning, bio/CTA, Reels, carousels, Stories, hooks, captions, visuals, cadence, engagement, traffic and conversion signals. It should maintain a rolling 30-day strategy and connect audience signals to relevant Atlas products/offers.
+
+No guaranteed follower, revenue or virality targets. No claim of a winner without measured evidence.
