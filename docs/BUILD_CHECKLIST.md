@@ -31,13 +31,15 @@
 
 ## Phase 3 — Shopify
 - [ ] Connect Shopify API
+- [x] Define read-only Shopify adapter contract
 - [ ] Read products
 - [ ] Read inventory
 - [ ] Read orders/analytics
 - [ ] Read product performance
 - [ ] Test Shopify data retrieval
 - [ ] Analyse catalogue
-- [ ] Generate first Profit Opportunity Report
+- [x] Define Opportunity Report model
+- [ ] Generate first live Profit Opportunity Report
 - [ ] Enable controlled product creation
 - [ ] Enable controlled product updates
 - [ ] Enable controlled inventory updates
@@ -142,6 +144,7 @@ All specialist outputs feed the central Opportunity Report and ATLAS Decision Ga
 - [x] Add Opportunity Report persistence
 - [x] Add controlled scanner execution
 - [x] Add approval queue persistence
+- [x] Define approval request model
 - [x] Add experiment/result persistence
 
 
