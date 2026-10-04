@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { recordAudit } from "./audit-log.js";
 import { agentRegistry } from "./registry.js";
 import type { AgentStatusRecord, RuntimeMode } from "./types.js";
+import { runScheduledScanner } from "./schedule.js";
 
 const mode: RuntimeMode = "DRY_RUN";
 
@@ -69,6 +70,7 @@ export async function runCycle(): Promise<void> {
   });
 
   const statuses = await runHealthCheck();
+  await runScheduledScanner({ intervalMinutes: 60, enabled: true });
   await recordAudit({
     event_id: randomUUID(),
     timestamp: now(),
