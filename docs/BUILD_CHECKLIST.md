@@ -138,8 +138,19 @@ All specialist outputs feed the central Opportunity Report and ATLAS Decision Ga
 - [x] Implement JSONL audit-event persistence
 - [x] Implement agent health/status checks
 - [x] Enforce dry-run as the runtime default
-- [ ] Add read-only Shopify/Metricool adapters
-- [ ] Add Opportunity Report persistence
-- [ ] Add scheduled scanner execution
-- [ ] Add approval queue persistence
-- [ ] Add experiment/result persistence
+- [x] Add read-only Shopify/Metricool adapter contracts
+- [x] Add Opportunity Report persistence
+- [x] Add controlled scanner execution
+- [x] Add approval queue persistence
+- [x] Add experiment/result persistence
+
+
+## Phase 1D — Social Intelligence Runtime
+- [x] Instagram growth & monetisation intelligence layer
+- [x] Social pipeline orchestration
+- [x] Opportunity scanner persistence
+- [x] Approval queue persistence
+- [x] Experiment/result persistence
+- [ ] Connect live Shopify data into scanner
+- [ ] Connect live Metricool data into scanner
+- [ ] Add authenticated scheduled execution
