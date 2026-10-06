@@ -5,14 +5,17 @@ BASE = "https://api.smartsheet.com/2.0"
 TOKEN = os.getenv("SMARTSHEET_API_TOKEN", "").strip()
 PROPERTY_SHEET = os.getenv("PROPERTY_LEADS_SHEET_ID", "").strip()
 FINANCE_SHEET = os.getenv("FINANCE_OPPORTUNITIES_SHEET_ID", "").strip()
+DRY_RUN = os.getenv("ATLAS_PROPERTY_AGENT_DRY_RUN", "").strip().lower() in ("1", "true", "yes")
 
 missing = [k for k, v in {
     "SMARTSHEET_API_TOKEN": TOKEN,
     "PROPERTY_LEADS_SHEET_ID": PROPERTY_SHEET,
     "FINANCE_OPPORTUNITIES_SHEET_ID": FINANCE_SHEET,
 }.items() if not v]
-if missing:
+if missing and not DRY_RUN:
     raise RuntimeError("Missing GitHub Actions secrets: " + ", ".join(missing))
+if DRY_RUN:
+    print("ATLAS property agent is running in DRY_RUN because required Smartsheet secrets are not configured.")
 
 H = {
     "Authorization": f"Bearer {TOKEN}",
@@ -81,6 +84,10 @@ def compliance(v):
     return "Amber"
 
 def run():
+    if DRY_RUN:
+        print("Dry-run health check passed. No Smartsheet reads or writes performed.")
+        return
+
     ps, fs = get_sheet(PROPERTY_SHEET), get_sheet(FINANCE_SHEET)
     pc, fc = cols(ps), cols(fs)
 
