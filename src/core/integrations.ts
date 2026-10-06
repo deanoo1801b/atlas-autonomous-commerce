@@ -6,7 +6,8 @@ export type IntegrationId =
   | "storage"
   | "research"
   | "translation"
-  | "pod";
+  | "pod"
+  | "email-marketing";
 
 export interface IntegrationStatus {
   id: IntegrationId;
@@ -23,5 +24,7 @@ export const integrationRegistry: IntegrationStatus[] = [
   { id: "storage", configured: false, writeEnabled: false },
   { id: "research", configured: false, writeEnabled: false },
   { id: "translation", configured: false, writeEnabled: false },
-  { id: "pod", configured: false, writeEnabled: false }
+  { id: "pod", configured: false, writeEnabled: false },
+  // Email platform is an integration boundary; no provider is claimed as connected yet.
+  { id: "email-marketing", configured: false, writeEnabled: false }
 ];
