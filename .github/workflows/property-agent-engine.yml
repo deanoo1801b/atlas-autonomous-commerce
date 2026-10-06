@@ -2,6 +2,11 @@ name: Inspiration Properties Agent Engine
 
 on:
   workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "property-agents/**"
+      - ".github/workflows/property-agent-engine.yml"
   schedule:
     - cron: "17 */6 * * *"
 
