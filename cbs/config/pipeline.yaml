@@ -1,0 +1,44 @@
+system: CBS
+parent_system: ATLAS
+store: Atlas Goods Store
+shopify_domain: atlasgoodsstore.co.uk
+currency: GBP
+mode: dry_run
+default_requires_approval:
+  - publish_to_amazon
+  - publish_to_shopify
+  - paid_advertising
+  - irreversible_catalogue_change
+  - external_account_action
+pipeline:
+  - amazon_trend_research
+  - competitor_gap_analysis
+  - opportunity_scoring
+  - concept_generation
+  - originality_gate
+  - interior_production
+  - interior_qa
+  - cover_metadata
+  - kdp_compliance
+  - human_approval
+  - shopify_listing
+  - launch
+  - performance_analysis
+  - feedback_loop
+evidence_required:
+  - source_urls
+  - observed_market_signal
+  - competitor_examples
+  - demand_rationale
+  - differentiation_statement
+  - originality_check
+  - qa_report
+  - kdp_check
+scoring:
+  demand: 25
+  trend: 15
+  competition_gap: 20
+  commercial_intent: 15
+  differentiation: 10
+  production_feasibility: 10
+  portfolio_fit: 5
