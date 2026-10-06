@@ -1,0 +1,9 @@
+{
+  "system": "Inspiration Properties UK Lead & Finance Engine",
+  "mode": "controlled_autonomy",
+  "contacting_enabled": false,
+  "referral_enabled": false,
+  "publishing_enabled": false,
+  "agents": ["lead_finder","verification","deduplication","lead_scorer","finance_classifier","deal_strategist","finance_qualifier","compliance_guard","buyer_matcher","pipeline_manager","social_content","orchestrator"],
+  "hard_stops": ["unverified_identity","missing_evidence","unclear_regulatory_status","personalised_regulated_finance_advice","unauthorised_financial_promotion","contact_permission_missing","duplicate_lead","material_data_conflict"]
+}
