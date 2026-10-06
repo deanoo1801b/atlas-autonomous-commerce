@@ -2,6 +2,7 @@ import type { AgentTask, RiskLevel } from "./types.js";
 
 export type OpportunityRoute =
   | "research"
+  | "offer-intelligence"
   | "digital-product"
   | "shopify"
   | "seo"
@@ -32,6 +33,7 @@ export interface CoordinatorDecision {
 
 const routes: Record<OpportunityRoute, { agentId: string; keywords: string[] }> = {
   research: { agentId: "global-trends", keywords: ["research", "watch", "trend"] },
+  "offer-intelligence": { agentId: "offer-intelligence", keywords: ["offer", "competitor", "funnel", "sales page", "ad", "creative", "positioning"] },
   "digital-product": { agentId: "product-opportunity", keywords: ["digital", "ebook", "workbook", "planner", "template", "guide", "bundle"] },
   shopify: { agentId: "shopify-product", keywords: ["shopify", "store", "listing", "product"] },
   seo: { agentId: "seo-global-sales", keywords: ["seo", "search", "keyword", "organic"] },
