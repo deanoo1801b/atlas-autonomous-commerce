@@ -8,6 +8,7 @@ export type OpportunityRoute =
   | "social"
   | "video"
   | "creative"
+  | "email-funnel"
   | "experiment"
   | "scale"
   | "reject";
@@ -37,6 +38,7 @@ const routes: Record<OpportunityRoute, { agentId: string; keywords: string[] }> 
   social: { agentId: "social-media", keywords: ["social", "tiktok", "instagram", "pinterest", "facebook"] },
   video: { agentId: "video-creation", keywords: ["video", "youtube", "short", "reel"] },
   creative: { agentId: "image-generation", keywords: ["image", "creative", "mockup", "visual"] },
+  "email-funnel": { agentId: "email-funnel", keywords: ["email", "funnel", "lead magnet", "newsletter", "nurture", "subscriber", "automation"] },
   experiment: { agentId: "analytics-experimentation", keywords: ["test", "experiment", "validate"] },
   scale: { agentId: "orchestrator", keywords: ["scale", "scaling"] },
   reject: { agentId: "orchestrator", keywords: ["reject", "discard"] }
