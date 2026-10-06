@@ -16,6 +16,7 @@ export function getIntelligencePipeline() {
     order: [
       "global-trend-scanner",
       "global-trends",
+      "offer-intelligence",
       "product-opportunity",
       "market-validation",
       "profit-pricing"
