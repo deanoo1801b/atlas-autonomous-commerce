@@ -71,6 +71,21 @@ export async function runCycle(): Promise<void> {
 
   const statuses = await runHealthCheck();
   await runScheduledScanner({ intervalMinutes: 60, enabled: true });
+
+  await recordAudit({
+    event_id: randomUUID(),
+    timestamp: now(),
+    agent: "offer-intelligence",
+    action: "offer_intelligence_ready",
+    mode,
+    evidence: [{
+      source: "src/intelligence/offer-intelligence.ts",
+      statement: "Offer intelligence is prepared to separate observed market facts from assumptions and identify compliant differentiation opportunities.",
+      confidence: "high"
+    }],
+    approval_required: false,
+    result: "Offer intelligence stage prepared; no protected content is copied and no commercial action is executed."
+  });
   await recordAudit({
     event_id: randomUUID(),
     timestamp: now(),
