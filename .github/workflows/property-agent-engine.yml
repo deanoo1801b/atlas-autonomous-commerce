@@ -39,14 +39,16 @@ jobs:
           PROPERTY_LEADS_SHEET_ID: ${{ secrets.PROPERTY_LEADS_SHEET_ID }}
           FINANCE_OPPORTUNITIES_SHEET_ID: ${{ secrets.FINANCE_OPPORTUNITIES_SHEET_ID }}
         run: |
-          test -n "$SMARTSHEET_API_TOKEN" || { echo "::error::SMARTSHEET_API_TOKEN is not configured"; exit 1; }
-          test -n "$PROPERTY_LEADS_SHEET_ID" || { echo "::error::PROPERTY_LEADS_SHEET_ID is not configured"; exit 1; }
-          test -n "$FINANCE_OPPORTUNITIES_SHEET_ID" || { echo "::error::FINANCE_OPPORTUNITIES_SHEET_ID is not configured"; exit 1; }
-          echo "Required secret configuration is present."
+          if [ -n "$SMARTSHEET_API_TOKEN" ] && [ -n "$PROPERTY_LEADS_SHEET_ID" ] && [ -n "$FINANCE_OPPORTUNITIES_SHEET_ID" ]; then
+            echo "Required secret configuration is present."
+          else
+            echo "::warning::Smartsheet secrets are not fully configured; agent will run safely in DRY_RUN."
+          fi
 
       - name: Run controlled pipeline
         env:
           SMARTSHEET_API_TOKEN: ${{ secrets.SMARTSHEET_API_TOKEN }}
           PROPERTY_LEADS_SHEET_ID: ${{ secrets.PROPERTY_LEADS_SHEET_ID }}
           FINANCE_OPPORTUNITIES_SHEET_ID: ${{ secrets.FINANCE_OPPORTUNITIES_SHEET_ID }}
+          ATLAS_PROPERTY_AGENT_DRY_RUN: ${{ secrets.SMARTSHEET_API_TOKEN == '' || secrets.PROPERTY_LEADS_SHEET_ID == '' || secrets.FINANCE_OPPORTUNITIES_SHEET_ID == '' }}
         run: python property-agents/engine.py
