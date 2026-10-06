@@ -50,5 +50,14 @@ export const intelligenceAgents: AgentDefinition[] = [
     requiresApproval: false,
     capabilities: ["pricing", "margin-analysis", "bundle-economics"],
     dependsOn: ["market-validation"]
+  }  ,{
+    id: "email-funnel",
+    name: "Email Funnel & Lifecycle Agent",
+    purpose: "Turn qualified traffic into owned audiences and sales through lead magnets, automated nurture sequences, product offers and lifecycle optimisation.",
+    risk: "medium",
+    status: "ready",
+    requiresApproval: true,
+    capabilities: ["lead-magnets", "email-sequences", "welcome-series", "nurture", "segmentation", "conversion-testing", "lifecycle-analytics"],
+    dependsOn: ["product-opportunity", "market-validation", "profit-pricing"]
   }
 ];
