@@ -2,7 +2,7 @@ import os, re, hashlib, time, json
 from datetime import datetime, timezone
 import requests
 from private_seller_agent import discover_private_sellers
-from open_properties_agent import discover_open_properties, to_property_lead
+from open_properties_agent import discover_open_properties, to_property_lead, last_scan_complete
 from motivated_seller_agent import motivation_score
 
 BASE = "https://api.smartsheet.com/2.0"
@@ -189,6 +189,7 @@ def run():
     # candidate rows; it never contacts sellers or collects private contact data.
     discovered = discover_private_sellers()
     open_market = discover_open_properties()
+    open_market_scan_complete = last_scan_complete()
     scan_id = _scan_id()
     discovered.extend(to_property_lead(item) for item in open_market)
     ps, fs = get_sheet(PROPERTY_SHEET), get_sheet(FINANCE_SHEET)
@@ -306,7 +307,7 @@ def run():
                     "Not observed in two consecutive normalized open-market discovery scans; provisional removal only, not evidence of seller financial distress."})
         if cells:
             miss_updates.append({"id": row["id"], "cells": cells})
-    if miss_updates:
+    if open_market_scan_complete and miss_updates:
         property_updates.extend(miss_updates)
 
     if new_property_rows:
