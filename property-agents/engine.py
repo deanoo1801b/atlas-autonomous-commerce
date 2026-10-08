@@ -1,5 +1,6 @@
 import os, re, hashlib, time
 import requests
+from private_seller_agent import discover_private_sellers
 
 BASE = "https://api.smartsheet.com/2.0"
 TOKEN = os.getenv("SMARTSHEET_API_TOKEN", "").strip()
@@ -88,8 +89,37 @@ def run():
         print("Dry-run health check passed. No Smartsheet reads or writes performed.")
         return
 
+    # Public private-seller discovery runs before qualification. It only creates
+    # candidate rows; it never contacts sellers or collects private contact data.
+    discovered = discover_private_sellers()
     ps, fs = get_sheet(PROPERTY_SHEET), get_sheet(FINANCE_SHEET)
     pc, fc = cols(ps), cols(fs)
+
+    existing_property = {}
+    for row in ps.get("rows", []):
+        v = values(row, pc)
+        for key in (norm(v.get("Lead ID")), norm(v.get("Source URL"))):
+            if key:
+                existing_property[key] = row
+
+    new_property_rows = []
+    for candidate in discovered:
+        if norm(candidate.get("Lead ID")) in existing_property or norm(candidate.get("Source URL")) in existing_property:
+            continue
+        cells = []
+        for name, value in candidate.items():
+            if name in pc and value is not None:
+                cells.append({"columnId": pc[name], "value": value})
+        if cells:
+            new_property_rows.append({"toBottom": True, "cells": cells})
+
+    if new_property_rows:
+        add_result = put_rows(PROPERTY_SHEET, new_property_rows)
+        print(f"Private seller discovery found {len(discovered)} candidates; added {len(new_property_rows)} new Property Leads.")
+        if add_result:
+            print(f"Property Leads discovery resultCode={add_result.get('resultCode')} message={add_result.get('message')}")
+    else:
+        print(f"Private seller discovery found {len(discovered)} candidates; no new Property Leads required.")
 
     required_property = {"Lead ID", "Lead Type", "Opportunity Type", "Area", "Asking Price"}
     required_finance = {"Finance Lead ID", "Lead Type", "Lead Score", "Compliance Status", "Finance Status"}
