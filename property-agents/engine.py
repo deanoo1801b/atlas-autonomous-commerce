@@ -1,6 +1,7 @@
 import os, re, hashlib, time
 import requests
 from private_seller_agent import discover_private_sellers
+from open_properties_agent import discover_open_properties, to_property_lead
 
 BASE = "https://api.smartsheet.com/2.0"
 TOKEN = os.getenv("SMARTSHEET_API_TOKEN", "").strip()
@@ -92,6 +93,8 @@ def run():
     # Public private-seller discovery runs before qualification. It only creates
     # candidate rows; it never contacts sellers or collects private contact data.
     discovered = discover_private_sellers()
+    open_market = discover_open_properties()
+    discovered.extend(to_property_lead(item) for item in open_market)
     ps, fs = get_sheet(PROPERTY_SHEET), get_sheet(FINANCE_SHEET)
     pc, fc = cols(ps), cols(fs)
 
@@ -115,11 +118,11 @@ def run():
 
     if new_property_rows:
         add_result = put_rows(PROPERTY_SHEET, new_property_rows)
-        print(f"Private seller discovery found {len(discovered)} candidates; added {len(new_property_rows)} new Property Leads.")
+        print(f"Property discovery found {len(discovered)} candidates ({len(open_market)} normalized open-market listings); added {len(new_property_rows)} new Property Leads.")
         if add_result:
             print(f"Property Leads discovery resultCode={add_result.get('resultCode')} message={add_result.get('message')}")
     else:
-        print(f"Private seller discovery found {len(discovered)} candidates; no new Property Leads required.")
+        print(f"Property discovery found {len(discovered)} candidates ({len(open_market)} normalized open-market listings); no new Property Leads required.")
 
     required_property = {"Lead ID", "Lead Type", "Opportunity Type", "Area", "Asking Price"}
     required_finance = {"Finance Lead ID", "Lead Type", "Lead Score", "Compliance Status", "Finance Status"}
