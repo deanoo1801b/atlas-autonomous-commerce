@@ -4,7 +4,7 @@ import unittest
 
 os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
 
-from engine import _listing_fields, _stale_band
+from engine import _identity_key, _listing_fields, _stale_band
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score
 
@@ -41,6 +41,38 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(_stale_band(181), "Very Strong")
         self.assertEqual(_stale_band(270), "Very Strong")
         self.assertEqual(_stale_band(271), "Exceptional")
+
+
+    def test_identity_key_uses_open_properties_provider_id(self):
+        lead = {
+            "Lead ID": "OP-abc123",
+            "Source": "open-properties/rightmove",
+            "Source URL": "https://example.test/property/abc123?foo=bar",
+        }
+        self.assertEqual(_identity_key(lead), "open-properties/rightmove:id:abc123")
+
+    def test_relisting_is_flagged_for_same_identity_after_removed_status(self):
+        previous = {
+            "First Seen": "2026-07-01",
+            "Original Asking Price": 500000,
+            "Current Asking Price": 450000,
+            "Reduction Count": 2,
+            "Evidence History": "[]",
+            "Motivation Score": 60,
+            "Listing Status": "Removed",
+            "Source URL": "https://example.test/property/old",
+        }
+        current = {
+            "Lead ID": "OP-abc123",
+            "Source": "open-properties/rightmove",
+            "Source URL": "https://example.test/property/new",
+            "Asking Price": 445000,
+            "Motivation Score": 65,
+        }
+        result = _listing_fields(current, previous, relisting=True, relisting_confidence="High")
+        self.assertEqual(result["Listing Status"], "Relisted")
+        self.assertTrue(result["Relisting Flag"])
+        self.assertEqual(result["Relisting Confidence"], "High")
 
     def test_price_reduction_history_accumulates(self):
         previous = {
