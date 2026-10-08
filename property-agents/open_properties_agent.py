@@ -36,7 +36,7 @@ def _locations() -> list[str]:
     raw = os.getenv("ATLAS_PROPERTY_LOCATIONS", "").strip()
     return [x.strip() for x in raw.split(",") if x.strip()] or list(DEFAULT_LOCATIONS)
 
-def _run(location: str) -> tuple[list[dict[str, Any]], bool>:
+def _run(location: str) -> tuple[list[dict[str, Any]], bool]:
     if not shutil.which("property"):
         return [], False
     with tempfile.NamedTemporaryFile(suffix=".json") as tmp:
