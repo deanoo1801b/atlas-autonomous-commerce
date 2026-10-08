@@ -62,6 +62,36 @@ def values(row, cmap):
 def norm(x):
     return re.sub(r"\s+", " ", str(x or "")).strip().lower()
 
+def _canonical_url(url):
+    raw = str(url or "").strip()
+    return raw.split("#", 1)[0].split("?", 1)[0].rstrip("/")
+
+def _identity_key(v):
+    explicit = str(v.get("Property Identity Key") or "").strip()
+    if explicit:
+        return explicit
+    lead_id = str(v.get("Lead ID") or "").strip()
+    source = str(v.get("Source") or "").strip().lower()
+    if lead_id.startswith("OP-") and lead_id[3:]:
+        return f"{source}:id:{lead_id[3:]}".lower()
+    url = _canonical_url(v.get("Source URL"))
+    return f"url:{url}".lower() if url else None
+
+def _stale_band(days):
+    if days is None:
+        return "Unknown"
+    if days <= 60:
+        return "Normal"
+    if days <= 90:
+        return "Watch"
+    if days <= 120:
+        return "Stale"
+    if days <= 180:
+        return "Strong"
+    if days <= 270:
+        return "Very Strong"
+    return "Exceptional"
+
 def route(v):
     opp, lt = norm(v.get("Opportunity Type")), norm(v.get("Lead Type"))
     if opp == "development": return "Development Finance"
@@ -103,7 +133,7 @@ def _history(v):
     except (TypeError, json.JSONDecodeError):
         return []
 
-def _listing_fields(v, previous=None):
+def _listing_fields(v, previous=None, relisting=False, relisting_confidence="Unknown"):
     previous = previous or {}
     today = _today()
     current = _price(v.get("Asking Price"))
@@ -119,17 +149,25 @@ def _listing_fields(v, previous=None):
         days = max(0, (datetime.fromisoformat(today) - datetime.fromisoformat(str(first)[:10])).days)
     except ValueError:
         days = 0
+    previous_status = str(previous.get("Listing Status") or "Unknown")
+    status = "Relisted" if relisting else ("Active" if previous_status not in {"Removed", "Relisted"} else previous_status)
+    previous_url = previous.get("Source URL")
+    current_url = v.get("Source URL")
+    event = {
+        "date": today, "price": current, "url": current_url,
+        "source": v.get("Source"), "motivation": v.get("Motivation Score"),
+        "status": status, "url_changed": bool(previous_url and current_url and _canonical_url(previous_url) != _canonical_url(current_url)),
+    }
     return {
         "First Seen": first, "Last Seen": today, "Days on Market": days,
         "Original Asking Price": original, "Current Asking Price": current,
         "Reduction Amount": amount, "Reduction %": pct, "Reduction Count": reductions,
-        "Listing Status": "Active", "Relisting Flag": False,
+        "Listing Status": status, "Relisting Flag": bool(relisting),
+        "Relisting Confidence": relisting_confidence, "Stale Band": _stale_band(days),
+        "Property Identity Key": _identity_key(v),
         "Motivation Trend": int(v.get("Motivation Score") or 0) - int(previous.get("Motivation Score") or 0),
-        "Evidence History": json.dumps((_history(v) + [{
-            "date": today, "price": current, "url": v.get("Source URL"),
-            "source": v.get("Source"), "motivation": v.get("Motivation Score")
-        }])[-20:], separators=(",", ":")),
-        "Previous Source URL": previous.get("Source URL"),
+        "Evidence History": json.dumps((_history(previous) + [event])[-20:], separators=(",", ":")),
+        "Previous Source URL": previous_url,
     }
 
 def run():
@@ -174,11 +212,15 @@ def run():
             candidate["Opportunity Type"] = "Property Acquisition"
 
     existing_property = {}
+    existing_property_identity = {}
     for row in ps.get("rows", []):
         v = values(row, pc)
         for key in (norm(v.get("Lead ID")), norm(v.get("Source URL"))):
             if key:
                 existing_property[key] = row
+        identity = _identity_key(v)
+        if identity:
+            existing_property_identity[identity] = row
 
     new_property_rows = []
     property_updates = []
@@ -186,12 +228,33 @@ def run():
         m = motivation_score(candidate)
         candidate["Motivation Score"] = m
         candidate["Lead Score"] = "Hot" if m >= 70 else ("Warm" if m >= 45 else "Cold")
-        existing_row = existing_property.get(norm(candidate.get("Lead ID"))) or existing_property.get(norm(candidate.get("Source URL")))
-        historical = _listing_fields(candidate, values(existing_row, pc) if existing_row else None)
+        existing_row = (
+            existing_property.get(norm(candidate.get("Lead ID")))
+            or existing_property.get(norm(candidate.get("Source URL")))
+            or existing_property_identity.get(_identity_key(candidate))
+        )
+        previous = values(existing_row, pc) if existing_row else None
+        previous_identity = _identity_key(previous) if previous else None
+        candidate_identity = _identity_key(candidate)
+        same_identity = bool(existing_row and candidate_identity and previous_identity and candidate_identity == previous_identity)
+        url_changed = bool(existing_row and norm(candidate.get("Source URL")) != norm((previous or {}).get("Source URL")))
+        genuine_relist = bool(
+            same_identity and url_changed and str((previous or {}).get("Listing Status") or "") == "Removed"
+        )
+        historical = _listing_fields(candidate, previous, genuine_relist, "High" if genuine_relist else "Unknown")
         candidate.update(historical)
         if existing_row:
-            cells = [{"columnId": pc[name], "value": value} for name, value in historical.items()
-                     if name in pc and value is not None]
+            discovery_fields = {
+                "Lead Type", "Opportunity Type", "Area", "Asking Price", "Lead Score",
+                "Source", "Source URL", "Opportunity Evidence", "Notes", "Motivation Score",
+                "Listing Status", "Relisting Flag", "Relisting Confidence", "Stale Band",
+                "Property Identity Key", "First Seen", "Last Seen", "Days on Market",
+                "Original Asking Price", "Current Asking Price", "Reduction Amount",
+                "Reduction %", "Reduction Count", "Motivation Trend", "Evidence History",
+                "Previous Source URL",
+            }
+            cells = [{"columnId": pc[name], "value": value} for name, value in candidate.items()
+                     if name in pc and name in discovery_fields and value is not None]
             if cells:
                 property_updates.append({"id": existing_row["id"], "cells": cells})
             continue
