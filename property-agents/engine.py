@@ -108,7 +108,9 @@ def run():
 
     new_property_rows = []
     for candidate in discovered:
-        candidate["Lead Score"] = motivation_score(candidate)
+        m = motivation_score(candidate)
+        candidate["Motivation Score"] = m
+        candidate["Lead Score"] = "Hot" if m >= 70 else ("Warm" if m >= 45 else "Cold")
         if norm(candidate.get("Lead ID")) in existing_property or norm(candidate.get("Source URL")) in existing_property:
             continue
         cells = []
