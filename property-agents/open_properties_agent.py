@@ -90,6 +90,8 @@ def to_property_lead(item: dict[str, Any]) -> dict[str, Any]:
         "Lead Type": "Open Market Listing",
         "Opportunity Type": "Property Acquisition",
         "Area": item.get("address") or item.get("_search_location"),
+        "Portal Listing ID": item.get("id"),
+        "Postcode": item.get("postcode") or item.get("postal_code"),
         "Asking Price": item.get("price"),
         "Seller Name": None,
         "Source": f"open-properties/{provider}",
