@@ -209,9 +209,6 @@ def run():
             update_result = put_rows(PROPERTY_SHEET, property_updates)
             print(f"Historical property updates applied: {len(property_updates)} rows; resultCode={update_result.get('resultCode')}")
 
-        if property_updates:
-            update_result = request("PUT", f"{BASE}/sheets/{PROPERTY_SHEET}/rows", json=property_updates).json()
-            print(f"Historical property updates applied: {len(property_updates)} rows; resultCode={update_result.get('resultCode')}")
         if add_result:
             print(f"Property Leads discovery resultCode={add_result.get('resultCode')} message={add_result.get('message')}")
     else:
