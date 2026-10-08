@@ -22,7 +22,7 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(lead["Lead Type"], "Open Market Listing")
         self.assertEqual(lead["Opportunity Type"], "Property Acquisition")
         self.assertEqual(lead["Contact Permission"], "Unknown")
-        self.assertIn("listing_date", lead["Notes"])
+        self.assertIn("listing_date", lead["Notes"])\n\n    def test_open_properties_preserves_portal_id_and_postcode(self):\n        lead = to_property_lead({\n            "id": "rm-456", "portal": "rightmove",\n            "url": "https://example.test/property/rm-456",\n            "address": "20 Test Road, London", "postcode": "SW1A 1AA",\n            "price": 650000,\n        })\n        self.assertEqual(lead["Portal Listing ID"], "rm-456")\n        self.assertEqual(lead["Postcode"], "SW1A 1AA")
 
     def test_motivation_score_is_bounded(self):
         self.assertGreaterEqual(motivation_score({"Lead Type": "Price Reduced"}), 0)
