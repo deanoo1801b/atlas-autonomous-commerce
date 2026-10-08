@@ -20,7 +20,7 @@ concurrency:
 jobs:
   run-agents:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -32,6 +32,15 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r property-agents/requirements.txt
+
+      - name: Verify open-properties installation
+        run: |
+          property --version
+          property providers
+
+      - name: Run offline unit tests
+        working-directory: property-agents
+        run: python -m unittest discover -s tests -v
 
       - name: Validate required secrets
         env:
