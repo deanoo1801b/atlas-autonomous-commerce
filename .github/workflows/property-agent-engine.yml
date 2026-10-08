@@ -38,6 +38,9 @@ jobs:
           property --version
           property providers
 
+      - name: Validate Python syntax
+        run: python -m py_compile property-agents/*.py
+
       - name: Run offline unit tests
         working-directory: property-agents
         run: python -m unittest discover -s tests -v
