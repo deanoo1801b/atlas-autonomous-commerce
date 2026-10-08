@@ -99,6 +99,34 @@ def run():
     ps, fs = get_sheet(PROPERTY_SHEET), get_sheet(FINANCE_SHEET)
     pc, fc = cols(ps), cols(fs)
 
+    # Fail closed on schema drift. Motivation Score is numeric; Lead Score is
+    # a controlled Hot/Warm/Cold picklist and must never receive 0-100.
+    required_property = {
+        "Lead ID", "Lead Type", "Opportunity Type", "Area", "Asking Price",
+        "Lead Score", "Motivation Score", "Source URL", "Opportunity Evidence",
+    }
+    required_finance = {"Finance Lead ID", "Lead Type", "Lead Score", "Compliance Status", "Finance Status"}
+    missing_property = required_property - set(pc)
+    missing_finance = required_finance - set(fc)
+    if missing_property:
+        raise RuntimeError("Property Leads sheet is missing columns: " + ", ".join(sorted(missing_property)))
+    if missing_finance:
+        raise RuntimeError("Finance Opportunities sheet is missing columns: " + ", ".join(sorted(missing_finance)))
+
+    valid_lead_types = {
+        "Off-Market", "Private Seller", "Distressed Sale", "Probate", "Auction",
+        "Developer Site", "Price Reduced", "Repossession", "Open Market Listing",
+    }
+    valid_opportunity_types = {
+        "Buy-to-Let", "Development", "JV Partnership", "Flip/Refurb",
+        "Portfolio Acquisition", "Land Assembly", "Private Sale", "Property Acquisition",
+    }
+    for candidate in discovered:
+        if candidate.get("Lead Type") not in valid_lead_types:
+            candidate["Lead Type"] = "Open Market Listing"
+        if candidate.get("Opportunity Type") not in valid_opportunity_types:
+            candidate["Opportunity Type"] = "Property Acquisition"
+
     existing_property = {}
     for row in ps.get("rows", []):
         v = values(row, pc)
@@ -127,15 +155,6 @@ def run():
             print(f"Property Leads discovery resultCode={add_result.get('resultCode')} message={add_result.get('message')}")
     else:
         print(f"Property discovery found {len(discovered)} candidates ({len(open_market)} normalized open-market listings); no new Property Leads required.")
-
-    required_property = {"Lead ID", "Lead Type", "Opportunity Type", "Area", "Asking Price"}
-    required_finance = {"Finance Lead ID", "Lead Type", "Lead Score", "Compliance Status", "Finance Status"}
-    missing_property = required_property - set(pc)
-    missing_finance = required_finance - set(fc)
-    if missing_property:
-        raise RuntimeError("Property Leads sheet is missing columns: " + ", ".join(sorted(missing_property)))
-    if missing_finance:
-        raise RuntimeError("Finance Opportunities sheet is missing columns: " + ", ".join(sorted(missing_finance)))
 
     existing = {}
     for row in fs.get("rows", []):
