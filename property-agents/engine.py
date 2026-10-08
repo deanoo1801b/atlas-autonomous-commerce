@@ -2,6 +2,7 @@ import os, re, hashlib, time
 import requests
 from private_seller_agent import discover_private_sellers
 from open_properties_agent import discover_open_properties, to_property_lead
+from motivated_seller_agent import motivation_score
 
 BASE = "https://api.smartsheet.com/2.0"
 TOKEN = os.getenv("SMARTSHEET_API_TOKEN", "").strip()
@@ -107,6 +108,7 @@ def run():
 
     new_property_rows = []
     for candidate in discovered:
+        candidate["Lead Score"] = motivation_score(candidate)
         if norm(candidate.get("Lead ID")) in existing_property or norm(candidate.get("Source URL")) in existing_property:
             continue
         cells = []
