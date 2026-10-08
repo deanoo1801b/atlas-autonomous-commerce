@@ -1,4 +1,5 @@
-import os, re, hashlib, time
+import os, re, hashlib, time, json
+from datetime import datetime, timezone
 import requests
 from private_seller_agent import discover_private_sellers
 from open_properties_agent import discover_open_properties, to_property_lead
@@ -86,6 +87,51 @@ def compliance(v):
     if norm(v.get("Contact Permission")) == "do not contact": return "Red"
     return "Amber"
 
+def _today():
+    return datetime.now(timezone.utc).date().isoformat()
+
+def _price(v):
+    try:
+        return float(str(v).replace(",", "").replace("£", "").strip())
+    except (TypeError, ValueError):
+        return None
+
+def _history(v):
+    try:
+        data = json.loads(str(v.get("Evidence History") or "[]"))
+        return data if isinstance(data, list) else []
+    except (TypeError, json.JSONDecodeError):
+        return []
+
+def _listing_fields(v, previous=None):
+    previous = previous or {}
+    today = _today()
+    current = _price(v.get("Asking Price"))
+    original = _price(previous.get("Original Asking Price")) or current
+    previous_current = _price(previous.get("Current Asking Price"))
+    reductions = int(previous.get("Reduction Count") or 0)
+    if current is not None and previous_current is not None and current < previous_current:
+        reductions += 1
+    amount = max(0, original - current) if current is not None and original is not None else None
+    pct = round(amount / original * 100, 2) if amount is not None and original else None
+    first = previous.get("First Seen") or today
+    try:
+        days = max(0, (datetime.fromisoformat(today) - datetime.fromisoformat(str(first)[:10])).days)
+    except ValueError:
+        days = 0
+    return {
+        "First Seen": first, "Last Seen": today, "Days on Market": days,
+        "Original Asking Price": original, "Current Asking Price": current,
+        "Reduction Amount": amount, "Reduction %": pct, "Reduction Count": reductions,
+        "Listing Status": "Active", "Relisting Flag": False,
+        "Motivation Trend": int(v.get("Motivation Score") or 0) - int(previous.get("Motivation Score") or 0),
+        "Evidence History": json.dumps((_history(v) + [{
+            "date": today, "price": current, "url": v.get("Source URL"),
+            "source": v.get("Source"), "motivation": v.get("Motivation Score")
+        }])[-20:], separators=(",", ":")),
+        "Previous Source URL": previous.get("Source URL"),
+    }
+
 def run():
     if DRY_RUN:
         print("Dry-run health check passed. No Smartsheet reads or writes performed.")
@@ -140,7 +186,14 @@ def run():
         m = motivation_score(candidate)
         candidate["Motivation Score"] = m
         candidate["Lead Score"] = "Hot" if m >= 70 else ("Warm" if m >= 45 else "Cold")
-        if norm(candidate.get("Lead ID")) in existing_property or norm(candidate.get("Source URL")) in existing_property:
+        existing_row = existing_property.get(norm(candidate.get("Lead ID"))) or existing_property.get(norm(candidate.get("Source URL")))
+        historical = _listing_fields(candidate, values(existing_row, pc) if existing_row else None)
+        candidate.update(historical)
+        if existing_row:
+            cells = [{"columnId": pc[name], "value": value} for name, value in historical.items()
+                     if name in pc and value is not None]
+            if cells:
+                property_updates.append({"id": existing_row["id"], "cells": cells})
             continue
         cells = []
         for name, value in candidate.items():
@@ -152,6 +205,10 @@ def run():
     if new_property_rows:
         add_result = put_rows(PROPERTY_SHEET, new_property_rows)
         print(f"Property discovery found {len(discovered)} candidates ({len(open_market)} normalized open-market listings); added {len(new_property_rows)} new Property Leads.")
+        if property_updates:
+            update_result = put_rows(PROPERTY_SHEET, property_updates)
+            print(f"Historical property updates applied: {len(property_updates)} rows; resultCode={update_result.get('resultCode')}")
+
         if property_updates:
             update_result = request("PUT", f"{BASE}/sheets/{PROPERTY_SHEET}/rows", json=property_updates).json()
             print(f"Historical property updates applied: {len(property_updates)} rows; resultCode={update_result.get('resultCode')}")
