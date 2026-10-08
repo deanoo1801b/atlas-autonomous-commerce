@@ -120,6 +120,15 @@ def compliance(v):
 def _today():
     return datetime.now(timezone.utc).date().isoformat()
 
+def _scan_id():
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+def _miss_count(v):
+    try:
+        return max(0, int(float(str(v.get("Scan Miss Count") or 0))))
+    except (TypeError, ValueError):
+        return 0
+
 def _price(v):
     try:
         return float(str(v).replace(",", "").replace("£", "").strip())
@@ -165,6 +174,7 @@ def _listing_fields(v, previous=None, relisting=False, relisting_confidence="Unk
         "Listing Status": status, "Relisting Flag": bool(relisting),
         "Relisting Confidence": relisting_confidence, "Stale Band": _stale_band(days),
         "Property Identity Key": _identity_key(v),
+        "Last Scan ID": _scan_id(),
         "Motivation Trend": int(v.get("Motivation Score") or 0) - int(previous.get("Motivation Score") or 0),
         "Evidence History": json.dumps((_history(previous) + [event])[-20:], separators=(",", ":")),
         "Previous Source URL": previous_url,
@@ -179,6 +189,7 @@ def run():
     # candidate rows; it never contacts sellers or collects private contact data.
     discovered = discover_private_sellers()
     open_market = discover_open_properties()
+    scan_id = _scan_id()
     discovered.extend(to_property_lead(item) for item in open_market)
     ps, fs = get_sheet(PROPERTY_SHEET), get_sheet(FINANCE_SHEET)
     pc, fc = cols(ps), cols(fs)
@@ -228,6 +239,8 @@ def run():
         m = motivation_score(candidate)
         candidate["Motivation Score"] = m
         candidate["Lead Score"] = "Hot" if m >= 70 else ("Warm" if m >= 45 else "Cold")
+        candidate["Last Scan ID"] = scan_id
+        candidate["Scan Miss Count"] = 0
         existing_row = (
             existing_property.get(norm(candidate.get("Lead ID")))
             or existing_property.get(norm(candidate.get("Source URL")))
@@ -249,6 +262,7 @@ def run():
                 "Source", "Source URL", "Opportunity Evidence", "Notes", "Motivation Score",
                 "Listing Status", "Relisting Flag", "Relisting Confidence", "Stale Band",
                 "Property Identity Key", "First Seen", "Last Seen", "Days on Market",
+                "Scan Miss Count", "Last Scan ID", "Removal Evidence", "Portal Listing ID", "Postcode",
                 "Original Asking Price", "Current Asking Price", "Reduction Amount",
                 "Reduction %", "Reduction Count", "Motivation Trend", "Evidence History",
                 "Previous Source URL",
@@ -265,6 +279,36 @@ def run():
         if cells:
             new_property_rows.append({"toBottom": True, "cells": cells})
 
+    # Conservative removal gate: only normalized open-market rows qualify,
+    # and two consecutive misses are required before a provisional Removed status.
+    seen_identities = {_identity_key(x) for x in discovered if _identity_key(x)}
+    miss_updates = []
+    for row in ps.get("rows", []):
+        v = values(row, pc)
+        if not norm(v.get("Source")).startswith("open-properties/"):
+            continue
+        if str(v.get("Listing Status") or "Unknown") not in {"Active", "Relisted", "Unknown"}:
+            continue
+        identity = _identity_key(v)
+        if identity and identity in seen_identities:
+            continue
+        misses = _miss_count(v) + 1
+        cells = []
+        if "Scan Miss Count" in pc:
+            cells.append({"columnId": pc["Scan Miss Count"], "value": misses})
+        if "Last Scan ID" in pc:
+            cells.append({"columnId": pc["Last Scan ID"], "value": scan_id})
+        if misses >= 2:
+            if "Listing Status" in pc:
+                cells.append({"columnId": pc["Listing Status"], "value": "Removed"})
+            if "Removal Evidence" in pc:
+                cells.append({"columnId": pc["Removal Evidence"], "value":
+                    "Not observed in two consecutive normalized open-market discovery scans; provisional removal only, not evidence of seller financial distress."})
+        if cells:
+            miss_updates.append({"id": row["id"], "cells": cells})
+    if miss_updates:
+        property_updates.extend(miss_updates)
+
     if new_property_rows:
         add_result = put_rows(PROPERTY_SHEET, new_property_rows)
         print(f"Property discovery found {len(discovered)} candidates ({len(open_market)} normalized open-market listings); added {len(new_property_rows)} new Property Leads.")
@@ -276,7 +320,7 @@ def run():
             print(f"Property Leads discovery resultCode={add_result.get('resultCode')} message={add_result.get('message')}")
     else:
         if property_updates:
-            update_result = request("PUT", f"{BASE}/sheets/{PROPERTY_SHEET}/rows", json=property_updates).json()
+            update_result = put_rows(PROPERTY_SHEET, property_updates)
             print(f"Historical property updates applied: {len(property_updates)} rows; resultCode={update_result.get('resultCode')}")
         print(f"Property discovery found {len(discovered)} candidates ({len(open_market)} normalized open-market listings); no new Property Leads required.")
 
