@@ -13,6 +13,8 @@ import subprocess
 import tempfile
 from typing import Any
 
+_LAST_SCAN_COMPLETE = True
+
 DEFAULT_LOCATIONS = (
     "London",
     "Birmingham",
@@ -34,9 +36,9 @@ def _locations() -> list[str]:
     raw = os.getenv("ATLAS_PROPERTY_LOCATIONS", "").strip()
     return [x.strip() for x in raw.split(",") if x.strip()] or list(DEFAULT_LOCATIONS)
 
-def _run(location: str) -> list[dict[str, Any]]:
+def _run(location: str) -> tuple[list[dict[str, Any]], bool>:
     if not shutil.which("property"):
-        return []
+        return [], False
     with tempfile.NamedTemporaryFile(suffix=".json") as tmp:
         cmd = [
             "property", "search",
@@ -51,23 +53,29 @@ def _run(location: str) -> list[dict[str, Any]]:
         try:
             p = subprocess.run(cmd, capture_output=True, text=True, timeout=90, check=False)
         except (OSError, subprocess.SubprocessError):
-            return []
+            return [], False
         if p.returncode != 0:
-            return []
+            return [], False
         try:
             payload = json.load(tmp)
         except (OSError, json.JSONDecodeError):
-            return []
+            return [], False
     properties = payload.get("properties", [])
-    return properties if isinstance(properties, list) else []
+    return (properties, True) if isinstance(properties, list) else ([], False)
 
 def discover_open_properties() -> list[dict[str, Any]]:
+    global _LAST_SCAN_COMPLETE
+    _LAST_SCAN_COMPLETE = True
     if not _enabled():
+        _LAST_SCAN_COMPLETE = False
         return []
     out: list[dict[str, Any]] = []
     seen: set[str] = set()
     for location in _locations():
-        for item in _run(location):
+        items, success = _run(location)
+        if not success:
+            _LAST_SCAN_COMPLETE = False
+        for item in items:
             url = str(item.get("url") or "").strip()
             key = str(item.get("id") or url).strip().lower()
             if not key or key in seen:
@@ -76,6 +84,10 @@ def discover_open_properties() -> list[dict[str, Any]]:
             item["_search_location"] = location
             out.append(item)
     return out
+
+def last_scan_complete() -> bool:
+    return _LAST_SCAN_COMPLETE
+
 
 def to_property_lead(item: dict[str, Any]) -> dict[str, Any]:
     url = str(item.get("url") or "").strip()
