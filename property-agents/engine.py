@@ -135,6 +135,7 @@ def run():
                 existing_property[key] = row
 
     new_property_rows = []
+    property_updates = []
     for candidate in discovered:
         m = motivation_score(candidate)
         candidate["Motivation Score"] = m
@@ -151,9 +152,15 @@ def run():
     if new_property_rows:
         add_result = put_rows(PROPERTY_SHEET, new_property_rows)
         print(f"Property discovery found {len(discovered)} candidates ({len(open_market)} normalized open-market listings); added {len(new_property_rows)} new Property Leads.")
+        if property_updates:
+            update_result = request("PUT", f"{BASE}/sheets/{PROPERTY_SHEET}/rows", json=property_updates).json()
+            print(f"Historical property updates applied: {len(property_updates)} rows; resultCode={update_result.get('resultCode')}")
         if add_result:
             print(f"Property Leads discovery resultCode={add_result.get('resultCode')} message={add_result.get('message')}")
     else:
+        if property_updates:
+            update_result = request("PUT", f"{BASE}/sheets/{PROPERTY_SHEET}/rows", json=property_updates).json()
+            print(f"Historical property updates applied: {len(property_updates)} rows; resultCode={update_result.get('resultCode')}")
         print(f"Property discovery found {len(discovered)} candidates ({len(open_market)} normalized open-market listings); no new Property Leads required.")
 
     existing = {}
