@@ -180,7 +180,7 @@ def _listing_fields(v, previous=None, relisting=False, relisting_confidence="Unk
         "Previous Source URL": previous_url,
     }
 
-def run():
+def _write_scan_report(scan_id, discovered_count, open_market_count, open_market_scan_complete, status, error=None):\n    payload = {\n        "scan_id": scan_id,\n        "timestamp_utc": datetime.now(timezone.utc).isoformat(),\n        "discovered_candidates": discovered_count,\n        "open_market_candidates": open_market_count,\n        "open_market_scan_complete": bool(open_market_scan_complete),\n        "status": status,\n        "error": error,\n    }\n    path = os.getenv("ATLAS_SCAN_REPORT_PATH", "property-agent-scan-report.json")\n    try:\n        with open(path, "w", encoding="utf-8") as fh:\n            json.dump(payload, fh, indent=2)\n    except OSError as exc:\n        print(f"Warning: unable to write scan report: {exc}")\n\ndef run():
     if DRY_RUN:
         print("Dry-run health check passed. No Smartsheet reads or writes performed.")
         return
@@ -370,7 +370,7 @@ def run():
         updates.append({"id": target["id"], "cells": cells})
 
     result = put_rows(FINANCE_SHEET, updates)
-    print(f"Property agent engine processed {len(updates)} finance records.")
+    _write_scan_report(scan_id, len(discovered), len(open_market), open_market_scan_complete, "SUCCESS")\n    print(f"Property agent engine processed {len(updates)} finance records.")
     if result:
         print(f"Smartsheet update resultCode={result.get('resultCode')} message={result.get('message')}")
 
