@@ -65,3 +65,11 @@ jobs:
           PROPERTY_LEADS_SHEET_ID: ${{ secrets.PROPERTY_LEADS_SHEET_ID }}
           FINANCE_OPPORTUNITIES_SHEET_ID: ${{ secrets.FINANCE_OPPORTUNITIES_SHEET_ID }}
         run: python property-agents/engine.py
+
+      - name: Upload scan audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: property-agent-scan-audit
+          path: property-agent-scan-report.json
+          if-no-files-found: ignore
