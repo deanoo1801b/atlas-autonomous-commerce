@@ -247,6 +247,7 @@ class HistoryTests(unittest.TestCase):
         previous = {"Lead ID":"OP-abc123","Source":"open-properties/rightmove","Source URL":"https://example.test/property/old","Property Identity Key":"open-properties/rightmove:id:abc123","Listing Status":"Removed"}
         current = dict(previous); current["Source URL"]="https://example.test/property/new"
         self.assertEqual(classify_relisting(previous, current), (True, "High"))
+        self.assertEqual(_identity_key(current), "open-properties/rightmove:id:new")
 
     def test_removed_new_listing_id_same_property_is_relisted(self):
         previous = {"Lead ID":"OP-old","Source":"open-properties/rightmove","Source URL":"https://example.test/property/old","Property Identity Key":"open-properties/rightmove:id:old","Listing Status":"Removed","Area":"10 Test Street","Postcode":"SW1A 1AA"}
