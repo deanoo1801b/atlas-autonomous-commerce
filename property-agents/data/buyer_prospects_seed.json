@@ -1,0 +1,195 @@
+{
+  "dataset_name": "Inspiration Properties UK — Public Buyer Prospect Seeds",
+  "generated_on": "2026-10-09",
+  "purpose": "Research starting points only. Publicly described acquisition activity is not proof of current buying appetite, identity checks, available funds, consent to contact, or willingness to pay a sourcing fee.",
+  "contacting_enabled": false,
+  "referral_enabled": false,
+  "publishing_enabled": false,
+  "records": [
+    {
+      "prospect_id": "BP-0001",
+      "name": "Rocktor Property Holdings",
+      "record_type": "Potential direct purchaser",
+      "geography": [
+        "London",
+        "UK-wide selective acquisitions"
+      ],
+      "property_strategies": [
+        "buy refurbish resell",
+        "buy to let",
+        "commercial",
+        "development",
+        "joint venture"
+      ],
+      "publicly_stated_interest": "Company website states it buys, refurbishes, lets and holds residential and commercial property, and lists quick cash purchases, buy-refurbish-resell and development/JV activity.",
+      "evidence_url": "https://rocktor.co.uk/",
+      "evidence_date": "2026-10-09",
+      "verification_status": "Public profile found - buyer not verified",
+      "identity_verified": false,
+      "funding_evidence_status": "not checked",
+      "consent_status": "not recorded",
+      "next_review": "Check company identity and acquisition criteria; confirm current activity, proof-of-funds review process and consent before any outreach."
+    },
+    {
+      "prospect_id": "BP-0002",
+      "name": "No.12 London",
+      "record_type": "Potential direct purchaser",
+      "geography": [
+        "London",
+        "UK cities"
+      ],
+      "property_strategies": [
+        "refurbishment",
+        "conversion",
+        "buy to let"
+      ],
+      "publicly_stated_interest": "Company website describes a London-based property investment firm specialising in refurbishments, conversions and acquisition of buy-to-let investments.",
+      "evidence_url": "https://www.no12london.co.uk/",
+      "evidence_date": "2026-10-09",
+      "verification_status": "Public profile found - buyer not verified",
+      "identity_verified": false,
+      "funding_evidence_status": "not checked",
+      "consent_status": "not recorded",
+      "next_review": "Check company identity, target postcodes, purchase budget, current buying activity and consent before any outreach."
+    },
+    {
+      "prospect_id": "BP-0003",
+      "name": "Clarence Property Group",
+      "record_type": "Potential direct purchaser / acquisition partner",
+      "geography": [
+        "London",
+        "South East England",
+        "UK specialist investments"
+      ],
+      "property_strategies": [
+        "cash purchases",
+        "residential",
+        "commercial",
+        "specialist investments"
+      ],
+      "publicly_stated_interest": "Website describes acquisition coverage across London and the South East and says it works with professional introducers and property-sector partners. Any stated cash-buying claims remain unverified by this dataset.",
+      "evidence_url": "https://clarencepropertygroup.com/",
+      "evidence_date": "2026-10-09",
+      "verification_status": "Public profile found - buyer not verified",
+      "identity_verified": false,
+      "funding_evidence_status": "not checked",
+      "consent_status": "not recorded",
+      "next_review": "Independently verify legal entity, acquisition mandate, introducer terms and applicable regulatory requirements before contact."
+    },
+    {
+      "prospect_id": "BP-0004",
+      "name": "PropertyBuyer.co.uk / Quick Move Property Ltd",
+      "record_type": "Potential direct cash purchaser",
+      "geography": [
+        "Essex",
+        "UK-wide claims on website"
+      ],
+      "property_strategies": [
+        "cash purchase",
+        "residential",
+        "commercial",
+        "land"
+      ],
+      "publicly_stated_interest": "Website says it buys properties in Essex and elsewhere in the UK, including houses, flats, commercial property and land. Current available capital and suitability for third-party sourced deals have not been verified.",
+      "evidence_url": "https://www.propertybuyer.co.uk/",
+      "evidence_date": "2026-10-09",
+      "verification_status": "Public profile found - buyer not verified",
+      "identity_verified": false,
+      "funding_evidence_status": "not checked",
+      "consent_status": "not recorded",
+      "next_review": "Check company details, direct acquisition criteria, current funds and whether it accepts sourced opportunities."
+    },
+    {
+      "prospect_id": "BP-0005",
+      "name": "Anioma",
+      "record_type": "Potential direct purchaser / investment partner",
+      "geography": [
+        "UK-wide stated"
+      ],
+      "property_strategies": [
+        "below-market-value",
+        "refurbishment",
+        "flip",
+        "buy to let",
+        "BRRR",
+        "HMO"
+      ],
+      "publicly_stated_interest": "Website describes sourcing undervalued residential assets and value creation through refurbishment, holding or resale. The company and its current buying mandate have not been independently verified.",
+      "evidence_url": "https://anioma.co.uk/",
+      "evidence_date": "2026-10-09",
+      "verification_status": "Public profile found - buyer not verified",
+      "identity_verified": false,
+      "funding_evidence_status": "not checked",
+      "consent_status": "not recorded",
+      "next_review": "Verify legal entity, track record, current acquisition criteria, capital availability and consent before contact."
+    },
+    {
+      "prospect_id": "BP-0006",
+      "name": "Sel Side Real Estate",
+      "record_type": "Potential direct purchaser",
+      "geography": [
+        "Central London"
+      ],
+      "property_strategies": [
+        "BRRR",
+        "refurbishment",
+        "one-bedroom flats",
+        "two-bedroom flats"
+      ],
+      "publicly_stated_interest": "Website states it targets undervalued one- and two-bedroom flats with refurbishment potential, with lease-length and tenure criteria. Current mandate and available capital are not verified.",
+      "evidence_url": "https://www.selsiderealestate.uk/",
+      "evidence_date": "2026-10-09",
+      "verification_status": "Public profile found - buyer not verified",
+      "identity_verified": false,
+      "funding_evidence_status": "not checked",
+      "consent_status": "not recorded",
+      "next_review": "Confirm target postcodes, minimum lease, price band, proof-of-funds process and consent before contact."
+    },
+    {
+      "prospect_id": "BN-0001",
+      "name": "Property Investors Network (pin)",
+      "record_type": "Investor-network channel - not a buyer",
+      "geography": [
+        "UK-wide",
+        "London and South East meeting search available"
+      ],
+      "property_strategies": [
+        "investor networking",
+        "joint ventures",
+        "multiple strategies"
+      ],
+      "publicly_stated_interest": "Network advertises monthly investor meetings across the UK and opportunities to connect with investors and potential joint-venture partners. Attendees are not presumed to be verified buyers.",
+      "evidence_url": "https://propertyinvestorsnetwork.co.uk/meetings/",
+      "evidence_date": "2026-10-09",
+      "verification_status": "Public network identified - individual buyers not verified",
+      "identity_verified": false,
+      "funding_evidence_status": "not applicable",
+      "consent_status": "not recorded",
+      "next_review": "Use as a lawful networking channel; verify each individual investor separately and follow event/network terms."
+    },
+    {
+      "prospect_id": "BN-0002",
+      "name": "South East Property Network",
+      "record_type": "Investor-network channel - not a buyer",
+      "geography": [
+        "Brighton",
+        "Eastbourne",
+        "South East England"
+      ],
+      "property_strategies": [
+        "investor networking",
+        "development",
+        "landlords",
+        "joint ventures"
+      ],
+      "publicly_stated_interest": "Network describes monthly in-person events for landlords, developers, investors and property professionals in Brighton and Eastbourne. Members are not presumed to be verified buyers.",
+      "evidence_url": "https://southeastpn.co.uk/",
+      "evidence_date": "2026-10-09",
+      "verification_status": "Public network identified - individual buyers not verified",
+      "identity_verified": false,
+      "funding_evidence_status": "not applicable",
+      "consent_status": "not recorded",
+      "next_review": "Use as a networking channel; verify each buyer independently and follow event/network terms."
+    }
+  ]
+}

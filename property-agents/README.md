@@ -43,3 +43,12 @@ Verification requires recorded identity verification, a checked funding-evidence
 Matching considers budget, location, strategy, stated minimum profit, and valuation evidence. Scores are triage aids, not investment recommendations. Human review remains required before any deal pack or introduction.
 
 The commercial sourcing workflow remains disabled pending regulatory review. HMRC guidance says property sourcing/deal packaging and introducing buyers or investors to property deals can constitute estate agency work; check supervision and redress requirements before trading. No outreach, referral, or financial-promotion publishing is enabled by this module.
+
+
+## Public Buyer Prospecting Register
+
+`data/buyer_prospects_seed.json` contains an initial source-linked register of public acquisition businesses and investor-network channels relevant to London and South East England. All businesses are labelled as prospects only; networking organisations are not classified as purchasers.
+
+`buyer_prospecting.py` loads and validates this register, fails closed if a public prospect is accidentally labelled verified, and filters prospects by stated geography and strategy. Published profiles are starting points, not endorsements. Current mandates, legal identities, available funds, and willingness to consider sourced deals have not been independently confirmed.
+
+Do not store identity documents or bank statements in this register. Contacting, referrals, and publishing remain disabled; do not outreach or make introductions until applicable regulatory and data-protection requirements are reviewed.

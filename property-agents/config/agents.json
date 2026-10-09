@@ -18,7 +18,8 @@
     "social_content",
     "orchestrator",
     "planning_opportunity_detector",
-    "buyer_intelligence"
+    "buyer_intelligence",
+    "buyer_prospecting"
   ],
   "hard_stops": [
     "unverified_identity",
@@ -136,5 +137,15 @@
       "valuation_evidence"
     ],
     "guardrail": "Scores are triage only; human review required. Never label buyer verified without evidence."
+  },
+  "buyer_prospecting": {
+    "enabled": true,
+    "mode": "public_source_register_only",
+    "seed_register": "property-agents/data/buyer_prospects_seed.json",
+    "automatic_contacting": false,
+    "referral_enabled": false,
+    "publishing_enabled": false,
+    "public_profiles_are_verified_buyers": false,
+    "guardrail": "Record source evidence and published criteria only. Verify identity, current mandate, purchasing capacity and consent separately before treating any person or business as a verified buyer."
   }
 }
