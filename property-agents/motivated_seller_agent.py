@@ -56,3 +56,31 @@ def motivation_score(lead: dict[str, Any]) -> int:
         score += 15
 
     return max(0, min(100, score))
+
+
+def motivation_trend(history: list[dict[str, Any]], current_score: int | None = None) -> int:
+    """Return a conservative -100..100 direction-of-travel score from observed history."""
+    if not history:
+        return 0
+    scores = []
+    prices = []
+    for event in history[-20:]:
+        try:
+            if event.get("motivation") is not None:
+                scores.append(float(event["motivation"]))
+        except (TypeError, ValueError):
+            pass
+        try:
+            if event.get("price") is not None:
+                prices.append(float(event["price"]))
+        except (TypeError, ValueError):
+            pass
+    if current_score is not None:
+        scores.append(float(current_score))
+    trend = 0.0
+    if len(scores) >= 2:
+        trend += max(-50.0, min(50.0, (scores[-1] - scores[0]) * 2.0))
+    if len(prices) >= 2 and prices[0] > 0:
+        reduction_pct = max(0.0, (prices[0] - prices[-1]) / prices[0] * 100.0)
+        trend += min(30.0, reduction_pct * 3.0)
+    return int(max(-100, min(100, round(trend))))
