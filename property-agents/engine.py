@@ -152,6 +152,23 @@ def _history(v):
     except (TypeError, json.JSONDecodeError):
         return []
 
+def classify_relisting(previous, current):
+    """Classify a reappearance without resetting the listing's historical identity."""
+    previous = previous or {}
+    current = current or {}
+    previous_status = str(previous.get("Listing Status") or "Unknown")
+    previous_identity = _identity_key(previous)
+    current_identity = _identity_key(current)
+    same_identity = bool(previous_identity and current_identity and previous_identity == current_identity)
+    if not (same_identity and previous_status == "Removed"):
+        return False, "Unknown"
+    previous_url = _canonical_url(previous.get("Source URL"))
+    current_url = _canonical_url(current.get("Source URL"))
+    if previous_url and current_url and previous_url != current_url:
+        return True, "High"
+    return True, "Medium"
+
+
 def _listing_fields(v, previous=None, relisting=False, relisting_confidence="Unknown"):
     previous = previous or {}
     today = _today()
@@ -308,13 +325,7 @@ def run():
                 or existing_property_identity.get(_identity_key(candidate))
             )
             previous = values(existing_row, pc) if existing_row else None
-            previous_identity = _identity_key(previous) if previous else None
-            candidate_identity = _identity_key(candidate)
-            same_identity = bool(existing_row and candidate_identity and previous_identity and candidate_identity == previous_identity)
-            url_changed = bool(existing_row and norm(candidate.get("Source URL")) != norm((previous or {}).get("Source URL")))
-            previously_removed = str((previous or {}).get("Listing Status") or "") == "Removed"
-            genuine_relist = bool(same_identity and previously_removed)
-            relist_confidence = "High" if (genuine_relist and url_changed) else ("Medium" if genuine_relist else "Unknown")
+            genuine_relist, relist_confidence = classify_relisting(previous, candidate) if existing_row else (False, "Unknown")
             historical = _listing_fields(candidate, previous, genuine_relist, relist_confidence)
             candidate.update(historical)
             candidate["Motivation Trend"] = motivation_trend(_history(previous), m)
