@@ -4,7 +4,7 @@ import unittest
 
 os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
 
-from engine import _identity_key, _listing_fields, _stale_band
+from engine import _identity_key, _listing_fields, _stale_band, finance_ready
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
 
@@ -44,6 +44,37 @@ class AdapterTests(unittest.TestCase):
     def test_motivation_score_is_bounded(self):
         self.assertGreaterEqual(motivation_score({"Lead Type": "Price Reduced"}), 0)
         self.assertLessEqual(motivation_score({"Lead Type": "Price Reduced"}), 100)
+
+
+class FinanceGateTests(unittest.TestCase):
+    def test_finance_gate_requires_source_or_opportunity_evidence(self):
+        self.assertFalse(finance_ready({"Asking Price": 250000, "Listing Status": "Active"}))
+
+    def test_finance_gate_requires_asking_price(self):
+        self.assertFalse(finance_ready({"Source URL": "https://example.test/property/1", "Listing Status": "Active"}))
+
+    def test_finance_gate_rejects_removed_listing(self):
+        self.assertFalse(finance_ready({
+            "Source URL": "https://example.test/property/1",
+            "Asking Price": 250000,
+            "Listing Status": "Removed",
+        }))
+
+    def test_finance_gate_rejects_do_not_contact(self):
+        self.assertFalse(finance_ready({
+            "Source URL": "https://example.test/property/1",
+            "Asking Price": 250000,
+            "Listing Status": "Active",
+            "Do Not Contact": True,
+        }))
+
+    def test_finance_gate_accepts_minimum_verified_evidence(self):
+        self.assertTrue(finance_ready({
+            "Source URL": "https://example.test/property/1",
+            "Asking Price": "250000",
+            "Listing Status": "Active",
+            "Contact Permission": "Unknown",
+        }))
 
 
 class HistoryTests(unittest.TestCase):
