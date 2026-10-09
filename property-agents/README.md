@@ -81,3 +81,5 @@ The report compares sourcing and assignment route gates for each record. It writ
 The review queue is an audit artifact only. It does not write to Smartsheet, contact sellers or buyers, make offers, sign contracts, pay fees, refer parties or publish opportunities. Even a route passing preliminary checks remains subject to human, compliance and independent solicitor review.
 
 The workflow also uploads a self-contained HTML review page alongside the JSON queue. It escapes property/source text before rendering and clearly labels all results as review-only, never transaction approval.
+
+The review queue now adds an evidence-work priority score and reasons. This is solely a triage order for completing due diligence; it does not rank a deal as a good investment, recommend an offer, or bypass any legal or human-review gate.

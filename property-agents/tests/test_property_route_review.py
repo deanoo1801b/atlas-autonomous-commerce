@@ -30,6 +30,13 @@ class PropertyRouteReviewTests(unittest.TestCase):
             self.assertIn("SCAN-HTML",page)
             self.assertIn("No candidates in this run",page)
 
+    def test_priority_is_evidence_work_order_only(self):
+        report = build_review_queue([{"Lead ID":"IP-P","Source URL":"https://example.test/p","Asking Price":140000,"Estimated Market Value":200000,"Comparable Sales Count":3,"Proposed Sourcing Fee":3000}],"SCAN-P")
+        record = report["records"][0]
+        self.assertEqual(record["review_priority_band"],"Review evidence first")
+        self.assertIn("not investment advice", report["priority_meaning"])
+        self.assertFalse(record["automatic_offer"])
+
     def test_queue_file_is_valid_json_and_audit_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             path=os.path.join(tmp,"queue.json")

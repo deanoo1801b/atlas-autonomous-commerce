@@ -31,6 +31,40 @@ def candidate_to_route_input(candidate: dict[str, Any]) -> dict[str, Any]:
         "human_reviewed": candidate.get("Human Deal Review Complete"),
     }
 
+def _prioritise_record(record: dict[str, Any]) -> dict[str, Any]:
+    """Rank only evidence completeness and arithmetic signals, not investment quality."""
+    sourcing = record.get("routes", {}).get("property_sourcing", {})
+    assignment = record.get("routes", {}).get("contract_assignment", {})
+    risks = sourcing.get("risks", []) + assignment.get("risks", [])
+    blockers = sourcing.get("blockers", []) + assignment.get("blockers", [])
+    discount = record.get("market_value_discount_pct")
+    comps_status = record.get("valuation_status")
+    score = 0
+    reasons = []
+    if record.get("source_url", "").startswith("https://"):
+        score += 10
+    else:
+        reasons.append("No valid HTTPS source link")
+    if isinstance(discount, (int, float)) and comps_status == "supported_by_minimum_count_only_not_valued_by_this_module":
+        score += 20
+        reasons.append("Entered price/value and minimum comparable count present; verify source comparables independently")
+    else:
+        reasons.append("Market value/comparable evidence incomplete")
+    if sourcing.get("gross_fee_estimate") is not None:
+        score += 5
+    else:
+        reasons.append("Sourcing fee not entered")
+    if assignment.get("gross_fee_estimate") is not None and assignment.get("blockers"):
+        reasons.append("Assignment route still has legal/compliance blockers")
+    if blockers:
+        reasons.append(f"{len(blockers)} recorded route blocker(s)")
+    if risks:
+        reasons.append(f"{len(risks)} recorded route risk(s)")
+    # Priority is explicitly evidence-work order, never a buy/offer recommendation.
+    band = "Review evidence first" if score >= 25 else ("Needs evidence" if score >= 10 else "Incomplete record")
+    return {"review_priority_score": score, "review_priority_band": band, "priority_reasons": reasons}
+
+
 def build_review_queue(candidates: list[dict[str, Any]], scan_id: str = "UNASSIGNED") -> dict[str, Any]:
     records = []
     for candidate in candidates:
@@ -50,10 +84,12 @@ def build_review_queue(candidates: list[dict[str, Any]], scan_id: str = "UNASSIG
             "automatic_offer": False, "automatic_contracting": False,
             "automatic_payment": False,
         })
+        records[-1].update(_prioritise_record(records[-1]))
     return {
         "schema_version": 1, "scan_id": scan_id,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "mode": "offline_human_review_queue", "candidate_count": len(records),
+        "priority_meaning": "Evidence-review order only; not investment advice, a valuation, or approval to transact.",
         "records": records,
         "guardrails": {
             "writes_to_smartsheet": False, "automatic_contacting": False,
