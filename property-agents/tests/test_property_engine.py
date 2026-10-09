@@ -74,7 +74,7 @@ class HistoryTests(unittest.TestCase):
         self.assertTrue(result["Relisting Flag"])
         self.assertEqual(result["Relisting Confidence"], "High")
 
-    def test_price_reduction_history_accumulates(self):
+    def test_reappearing_removed_listing_is_relisted_with_medium_confidence(self):\n        previous = {\n            "First Seen": "2026-07-01", "Original Asking Price": 500000,\n            "Current Asking Price": 450000, "Reduction Count": 2,\n            "Evidence History": "[]", "Motivation Score": 60,\n            "Listing Status": "Removed",\n            "Source URL": "https://example.test/property/abc123",\n            "Lead ID": "OP-abc123", "Source": "open-properties/rightmove",\n            "Property Identity Key": "open-properties/rightmove:id:abc123",\n        }\n        current = {\n            "Lead ID": "OP-abc123", "Source": "open-properties/rightmove",\n            "Source URL": "https://example.test/property/abc123",\n            "Asking Price": 445000, "Motivation Score": 65,\n            "Property Identity Key": "open-properties/rightmove:id:abc123",\n        }\n        self.assertEqual(_listing_fields(current, previous, relisting=True, relisting_confidence="Medium")["Listing Status"], "Relisted")\n\n    def test_price_reduction_history_accumulates(self):
         previous = {
             "First Seen": "2026-07-01",
             "Original Asking Price": 500000,
