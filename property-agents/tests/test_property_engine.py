@@ -11,6 +11,26 @@ from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
 
 
+class BMVTests(unittest.TestCase):
+    def test_30_percent_discount_is_priority_a(self):
+        from engine import bmv_discount_pct, bmv_tier
+        self.assertEqual(bmv_discount_pct(200000, 140000), 30.0)
+        self.assertEqual(bmv_tier(200000, 140000, 3), "Priority A - 30%+ BMV")
+
+    def test_25_percent_discount_is_priority_b(self):
+        from engine import bmv_tier
+        self.assertEqual(bmv_tier(200000, 150000, 3), "Priority B - 25-29.9% BMV")
+
+    def test_bmv_without_three_comparables_fails_closed(self):
+        from engine import bmv_tier
+        self.assertEqual(bmv_tier(200000, 140000, 2), "Review - valuation evidence missing")
+
+    def test_bmv_invalid_value_is_review(self):
+        from engine import bmv_discount_pct, bmv_tier
+        self.assertIsNone(bmv_discount_pct(None, 140000))
+        self.assertEqual(bmv_tier(None, 140000, 5), "Review - valuation evidence missing")
+
+
 class AdapterTests(unittest.TestCase):
     def test_open_properties_maps_to_valid_picklists(self):
         lead = to_property_lead({
