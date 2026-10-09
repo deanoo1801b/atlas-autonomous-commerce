@@ -22,6 +22,22 @@ class PropertyRouteReviewTests(unittest.TestCase):
         self.assertIn("NOT APPROVED TO TRANSACT", page)
         self.assertIn("Contract assignment", page)
 
+    def test_html_shows_priority_bands_scores_and_reasons(self):
+        report = build_review_queue([
+            {"Lead ID":"IP-PRIORITY", "Area":"Croydon", "Source URL":"https://example.test/p",
+             "Asking Price":140000, "Estimated Market Value":200000,
+             "Comparable Sales Count":3, "Proposed Sourcing Fee":3000},
+            {"Lead ID":"IP-INCOMPLETE", "Area":"Sutton"}
+        ], "SCAN-PRIORITY")
+        page = render_review_html(report)
+        self.assertIn("Evidence review work order", page)
+        self.assertIn("<strong>Review evidence first:</strong> 1", page)
+        self.assertIn("<strong>Incomplete record:</strong> 1", page)
+        self.assertIn("Evidence score:", page)
+        self.assertIn("Market value/comparable evidence incomplete", page)
+        self.assertIn("<th>Evidence review priority</th>", page)
+        self.assertIn("not indicate property quality", page)
+
     def test_html_file_is_written(self):
         with tempfile.TemporaryDirectory() as tmp:
             path=os.path.join(tmp,"review.html")
