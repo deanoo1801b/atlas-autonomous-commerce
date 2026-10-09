@@ -252,10 +252,10 @@ def run():
         candidate_identity = _identity_key(candidate)
         same_identity = bool(existing_row and candidate_identity and previous_identity and candidate_identity == previous_identity)
         url_changed = bool(existing_row and norm(candidate.get("Source URL")) != norm((previous or {}).get("Source URL")))
-        genuine_relist = bool(
-            same_identity and url_changed and str((previous or {}).get("Listing Status") or "") == "Removed"
-        )
-        historical = _listing_fields(candidate, previous, genuine_relist, "High" if genuine_relist else "Unknown")
+        previously_removed = str((previous or {}).get("Listing Status") or "") == "Removed"
+        genuine_relist = bool(same_identity and previously_removed)
+        relist_confidence = "High" if (genuine_relist and url_changed) else ("Medium" if genuine_relist else "Unknown")
+        historical = _listing_fields(candidate, previous, genuine_relist, relist_confidence)
         candidate.update(historical)
         if existing_row:
             discovery_fields = {
