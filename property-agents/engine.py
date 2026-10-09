@@ -208,8 +208,8 @@ def _write_scan_report(scan_id, discovered_count, open_market_count, open_market
         print(f"Warning: unable to write scan report: {exc}")
 
 def run():
-scan_id = _scan_id()
-try:
+    scan_id = _scan_id()
+    try:
         if DRY_RUN:
             print("Dry-run health check passed. No Smartsheet reads or writes performed.")
             _write_scan_report(_scan_id(), 0, 0, False, "DRY_RUN")
