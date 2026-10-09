@@ -153,10 +153,11 @@ def _history(v):
         return []
 
 def _property_relisting_key(v):
-    """Conservative property-level key used only to connect removed/reappearing listings."""
-    address = norm(v.get("Area") or v.get("Address") or "")
+    """Use exact street-address + postcode only; never postcode/area alone."""
+    address = norm(v.get("Property Address") or v.get("Address") or v.get("Area") or "")
     postcode = norm(v.get("Postcode") or "")
-    if not address or not postcode:
+    # Area is accepted only when it actually looks like a street address.
+    if not address or not postcode or not re.search(r"\d", address):
         return None
     return f"{address}|{postcode}"
 
