@@ -77,6 +77,31 @@ def _identity_key(v):
     url = _canonical_url(v.get("Source URL"))
     return f"url:{url}".lower() if url else None
 
+def bmv_discount_pct(estimated_market_value, asking_price):
+    """Discount against evidence-backed estimated value; None when inputs are invalid."""
+    market = _price(estimated_market_value)
+    ask = _price(asking_price)
+    if market is None or ask is None or market <= 0 or ask < 0:
+        return None
+    return round((market - ask) / market * 100, 2)
+
+
+def bmv_tier(estimated_market_value, asking_price, evidence_count=0):
+    """Fail closed: discount tier requires at least three comparable sold transactions."""
+    discount = bmv_discount_pct(estimated_market_value, asking_price)
+    try:
+        count = int(evidence_count or 0)
+    except (TypeError, ValueError):
+        count = 0
+    if discount is None or count < 3:
+        return "Review - valuation evidence missing"
+    if discount >= 30:
+        return "Priority A - 30%+ BMV"
+    if discount >= 25:
+        return "Priority B - 25-29.9% BMV"
+    return "Below BMV threshold"
+
+
 def _stale_band(days):
     if days is None:
         return "Unknown"

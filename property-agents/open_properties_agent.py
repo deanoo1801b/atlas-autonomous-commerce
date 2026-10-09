@@ -1,4 +1,4 @@
-""""Optional adapter for the MIT-licensed open-properties data layer.
+"""Optional adapter for the MIT-licensed open-properties data layer.
 
 The adapter keeps the acquisition/compliance logic in our repository. It only consumes
 normalized public listing records from the external CLI and never contacts sellers.
