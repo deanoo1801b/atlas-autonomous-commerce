@@ -111,7 +111,7 @@ DESIGNATED_AREA_TERMS = ("london", "croydon", "bromley", "lewisham", "greenwich"
 
 def geography_status(candidate):
     """Conservative area gate; requires postcode or explicit place evidence."""
-    postcode = re.sub(r"\\s+", "", str(candidate.get("Postcode") or candidate.get("postcode") or "")).upper()
+    postcode = re.sub(r"\s+", "", str(candidate.get("Postcode") or candidate.get("postcode") or "")).upper()
     match = re.match(r"([A-Z]{1,2})", postcode)
     if match:
         return "In designated area" if match.group(1) in LONDON_SE_POSTCODE_PREFIXES else "Outside designated area"
