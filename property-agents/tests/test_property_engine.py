@@ -6,7 +6,7 @@ os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
 
 from engine import _identity_key, _listing_fields, _stale_band
 from open_properties_agent import to_property_lead
-from motivated_seller_agent import motivation_score
+from motivated_seller_agent import motivation_score, motivation_trend
 
 
 class AdapterTests(unittest.TestCase):
@@ -24,7 +24,7 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(lead["Contact Permission"], "Unknown")
         self.assertIn("listing_date", lead["Notes"])\n\n    def test_open_properties_preserves_portal_id_and_postcode(self):\n        lead = to_property_lead({\n            "id": "rm-456", "portal": "rightmove",\n            "url": "https://example.test/property/rm-456",\n            "address": "20 Test Road, London", "postcode": "SW1A 1AA",\n            "price": 650000,\n        })\n        self.assertEqual(lead["Portal Listing ID"], "rm-456")\n        self.assertEqual(lead["Postcode"], "SW1A 1AA")
 
-    def test_motivation_score_is_bounded(self):
+    def test_motivation_trend_detects_repeated_pressure(self):\n        history = [{"motivation": 30, "price": 500000}, {"motivation": 45, "price": 475000}]\n        self.assertGreater(motivation_trend(history, 60), 0)\n\n    def test_motivation_trend_is_zero_without_history(self):\n        self.assertEqual(motivation_trend([], 60), 0)\n\n    def test_motivation_score_is_bounded(self):
         self.assertGreaterEqual(motivation_score({"Lead Type": "Price Reduced"}), 0)
         self.assertLessEqual(motivation_score({"Lead Type": "Price Reduced"}), 100)
 
