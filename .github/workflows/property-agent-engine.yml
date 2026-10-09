@@ -96,6 +96,14 @@ jobs:
           FINANCE_OPPORTUNITIES_SHEET_ID: ${{ secrets.FINANCE_OPPORTUNITIES_SHEET_ID }}
         run: python property-agents/engine.py
 
+      - name: Upload contract route review queue
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: property-contract-route-review-queue
+          path: property-route-review-queue.json
+          if-no-files-found: ignore
+
       - name: Upload scan audit report
         if: always()
         uses: actions/upload-artifact@v4

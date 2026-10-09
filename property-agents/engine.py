@@ -5,6 +5,7 @@ from private_seller_agent import discover_private_sellers
 from open_properties_agent import discover_open_properties, to_property_lead, last_scan_complete
 from motivated_seller_agent import motivation_score, motivation_trend
 from planning_opportunity_agent import analyse_planning_candidate, development_profit_scenario
+from property_route_review import write_review_queue
 
 BASE = "https://api.smartsheet.com/2.0"
 TOKEN = os.getenv("SMARTSHEET_API_TOKEN", "").strip()
@@ -317,7 +318,9 @@ def run():
     try:
         if DRY_RUN:
             print("Dry-run health check passed. No Smartsheet reads or writes performed.")
-            _write_scan_report(_scan_id(), 0, 0, False, "DRY_RUN")
+            dry_scan_id = _scan_id()
+            write_review_queue([], dry_scan_id)
+            _write_scan_report(dry_scan_id, 0, 0, False, "DRY_RUN")
             return
     
         # Public private-seller discovery runs before qualification. It only creates
@@ -373,6 +376,10 @@ def run():
                 candidate["Planning Review Status"] = "Planning API error - council portal review required"
                 candidate["Planning Opportunity Summary"] = f"Planning scan failed ({type(planning_exc).__name__}); this is not evidence that no applications exist."
                 planning_processed += 1
+        # Local audit artifact only; no route data is written to Smartsheet.
+        route_review = write_review_queue(discovered, scan_id)
+        print(f"Contract route review queue created for {route_review['candidate_count']} candidates; no commitments or outreach performed.")
+
         ps, fs = get_sheet(PROPERTY_SHEET), get_sheet(FINANCE_SHEET)
         pc, fc = cols(ps), cols(fs)
     

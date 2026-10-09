@@ -164,6 +164,8 @@
     "publishing_enabled": false,
     "hard_stop_on_unresolved_legal_risk": true,
     "minimum_comparable_sales": 3,
-    "guardrail": "Scenario comparison only, not legal advice or a recommendation to transact. Require independent solicitor review and human approval. Never infer assignment rights, seller consent, regulatory compliance, or buyer funding."
+    "guardrail": "Scenario comparison only, not legal advice or a recommendation to transact. Require independent solicitor review and human approval. Never infer assignment rights, seller consent, regulatory compliance, or buyer funding.",
+    "review_queue_artifact": "property-route-review-queue.json",
+    "writes_to_smartsheet": false
   }
 }
