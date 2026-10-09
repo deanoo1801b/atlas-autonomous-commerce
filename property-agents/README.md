@@ -16,6 +16,7 @@ SMARTSHEET_API_TOKEN
 PROPERTY_LEADS_SHEET_ID
 FINANCE_OPPORTUNITIES_SHEET_ID
 
-Known sheets:
-Property Leads: 95VHjPc74mJh2Q6485MHCqGjQP5p97wmW4x54Rg1
-Finance Opportunities: 890673877438340
+Sheet configuration:
+The engine reads both Smartsheet IDs from GitHub Actions secrets at runtime; IDs are intentionally not hard-coded in the engine.
+- PROPERTY_LEADS_SHEET_ID: current live Property Leads sheet ID is 3007077934124932
+- FINANCE_OPPORTUNITIES_SHEET_ID: current live Finance Opportunities sheet ID is 890673877438340
