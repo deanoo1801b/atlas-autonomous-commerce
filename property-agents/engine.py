@@ -117,6 +117,16 @@ def compliance(v):
     if norm(v.get("Contact Permission")) == "do not contact": return "Red"
     return "Amber"
 
+def finance_ready(v):
+    """Return True only when minimum evidence, listing availability, and compliance gates pass."""
+    compliance_status = compliance(v)
+    evidence_ready = bool(
+        v.get("Source URL") or v.get("Opportunity Evidence")
+    ) and _price(v.get("Asking Price")) is not None
+    listing_available = str(v.get("Listing Status") or "Unknown") not in {"Removed"}
+    return compliance_status != "Red" and evidence_ready and listing_available
+
+
 def _today():
     return datetime.now(timezone.utc).date().isoformat()
 
@@ -371,11 +381,7 @@ def run():
             continue
 
         compliance_status = compliance(v)
-        evidence_ready = bool(
-            v.get("Source URL") or v.get("Opportunity Evidence")
-        ) and _price(v.get("Asking Price")) is not None
-        listing_available = str(v.get("Listing Status") or "Unknown") not in {"Removed"}
-        finance_gate = compliance_status != "Red" and evidence_ready and listing_available
+        finance_gate = finance_ready(v)
         note = (
             "Automated route classification: " + rt + ". "
             + ("Minimum evidence gate passed; case remains subject to human verification."
