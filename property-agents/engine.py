@@ -208,213 +208,226 @@ def _write_scan_report(scan_id, discovered_count, open_market_count, open_market
         print(f"Warning: unable to write scan report: {exc}")
 
 def run():
-    if DRY_RUN:
-        print("Dry-run health check passed. No Smartsheet reads or writes performed.")
-        _write_scan_report(_scan_id(), 0, 0, False, "DRY_RUN")
-        return
-
-    # Public private-seller discovery runs before qualification. It only creates
-    # candidate rows; it never contacts sellers or collects private contact data.
-    discovered = discover_private_sellers()
-    open_market = discover_open_properties()
-    open_market_scan_complete = last_scan_complete()
     scan_id = _scan_id()
-    discovered.extend(to_property_lead(item) for item in open_market)
-    ps, fs = get_sheet(PROPERTY_SHEET), get_sheet(FINANCE_SHEET)
-    pc, fc = cols(ps), cols(fs)
-
-    # Fail closed on schema drift. Motivation Score is numeric; Lead Score is
-    # a controlled Hot/Warm/Cold picklist and must never receive 0-100.
-    required_property = {
-        "Lead ID", "Lead Type", "Opportunity Type", "Area", "Asking Price",
-        "Lead Score", "Motivation Score", "Source URL", "Opportunity Evidence",
-    }
-    required_finance = {"Finance Lead ID", "Lead Type", "Lead Score", "Compliance Status", "Finance Status"}
-    missing_property = required_property - set(pc)
-    missing_finance = required_finance - set(fc)
-    if missing_property:
-        raise RuntimeError("Property Leads sheet is missing columns: " + ", ".join(sorted(missing_property)))
-    if missing_finance:
-        raise RuntimeError("Finance Opportunities sheet is missing columns: " + ", ".join(sorted(missing_finance)))
-
-    valid_lead_types = {
-        "Off-Market", "Private Seller", "Distressed Sale", "Probate", "Auction",
-        "Developer Site", "Price Reduced", "Repossession", "Open Market Listing",
-    }
-    valid_opportunity_types = {
-        "Buy-to-Let", "Development", "JV Partnership", "Flip/Refurb",
-        "Portfolio Acquisition", "Land Assembly", "Private Sale", "Property Acquisition",
-    }
-    for candidate in discovered:
-        if candidate.get("Lead Type") not in valid_lead_types:
-            candidate["Lead Type"] = "Open Market Listing"
-        if candidate.get("Opportunity Type") not in valid_opportunity_types:
-            candidate["Opportunity Type"] = "Property Acquisition"
-
-    existing_property = {}
-    existing_property_identity = {}
-    for row in ps.get("rows", []):
-        v = values(row, pc)
-        for key in (norm(v.get("Lead ID")), norm(v.get("Source URL"))):
-            if key:
-                existing_property[key] = row
-        identity = _identity_key(v)
-        if identity:
-            existing_property_identity[identity] = row
-
-    new_property_rows = []
-    property_updates = []
-    for candidate in discovered:
-        m = motivation_score(candidate)
-        candidate["Motivation Score"] = m
-        candidate["Lead Score"] = "Hot" if m >= 70 else ("Warm" if m >= 45 else "Cold")
-        candidate["Last Scan ID"] = scan_id
-        candidate["Scan Miss Count"] = 0
-        existing_row = (
-            existing_property.get(norm(candidate.get("Lead ID")))
-            or existing_property.get(norm(candidate.get("Source URL")))
-            or existing_property_identity.get(_identity_key(candidate))
-        )
-        previous = values(existing_row, pc) if existing_row else None
-        previous_identity = _identity_key(previous) if previous else None
-        candidate_identity = _identity_key(candidate)
-        same_identity = bool(existing_row and candidate_identity and previous_identity and candidate_identity == previous_identity)
-        url_changed = bool(existing_row and norm(candidate.get("Source URL")) != norm((previous or {}).get("Source URL")))
-        previously_removed = str((previous or {}).get("Listing Status") or "") == "Removed"
-        genuine_relist = bool(same_identity and previously_removed)
-        relist_confidence = "High" if (genuine_relist and url_changed) else ("Medium" if genuine_relist else "Unknown")
-        historical = _listing_fields(candidate, previous, genuine_relist, relist_confidence)
-        candidate.update(historical)
-        candidate["Motivation Trend"] = motivation_trend(_history(previous), m)
-        if existing_row:
-            discovery_fields = {
-                "Lead Type", "Opportunity Type", "Area", "Asking Price", "Lead Score",
-                "Source", "Source URL", "Opportunity Evidence", "Notes", "Motivation Score",
-                "Listing Status", "Relisting Flag", "Relisting Confidence", "Stale Band",
-                "Property Identity Key", "First Seen", "Last Seen", "Days on Market",
-                "Scan Miss Count", "Last Scan ID", "Removal Evidence", "Portal Listing ID", "Postcode",
-                "Original Asking Price", "Current Asking Price", "Reduction Amount",
-                "Reduction %", "Reduction Count", "Motivation Trend", "Evidence History",
-                "Previous Source URL",
+    try:
+            if DRY_RUN:
+                print("Dry-run health check passed. No Smartsheet reads or writes performed.")
+                _write_scan_report(_scan_id(), 0, 0, False, "DRY_RUN")
+                return
+        
+            # Public private-seller discovery runs before qualification. It only creates
+            # candidate rows; it never contacts sellers or collects private contact data.
+            discovered = discover_private_sellers()
+            open_market = discover_open_properties()
+            open_market_scan_complete = last_scan_complete()
+            scan_id = _scan_id()
+            discovered.extend(to_property_lead(item) for item in open_market)
+            ps, fs = get_sheet(PROPERTY_SHEET), get_sheet(FINANCE_SHEET)
+            pc, fc = cols(ps), cols(fs)
+        
+            # Fail closed on schema drift. Motivation Score is numeric; Lead Score is
+            # a controlled Hot/Warm/Cold picklist and must never receive 0-100.
+            required_property = {
+                "Lead ID", "Lead Type", "Opportunity Type", "Area", "Asking Price",
+                "Lead Score", "Motivation Score", "Source URL", "Opportunity Evidence",
             }
-            cells = [{"columnId": pc[name], "value": value} for name, value in candidate.items()
-                     if name in pc and name in discovery_fields and value is not None]
-            if cells:
-                property_updates.append({"id": existing_row["id"], "cells": cells})
-            continue
-        cells = []
-        for name, value in candidate.items():
-            if name in pc and value is not None:
-                cells.append({"columnId": pc[name], "value": value})
-        if cells:
-            new_property_rows.append({"toBottom": True, "cells": cells})
-
-    # Conservative removal gate: only normalized open-market rows qualify,
-    # and two consecutive misses are required before a provisional Removed status.
-    seen_identities = {_identity_key(x) for x in discovered if _identity_key(x)}
-    miss_updates = []
-    for row in ps.get("rows", []):
-        v = values(row, pc)
-        if not norm(v.get("Source")).startswith("open-properties/"):
-            continue
-        if str(v.get("Listing Status") or "Unknown") not in {"Active", "Relisted", "Unknown"}:
-            continue
-        identity = _identity_key(v)
-        if identity and identity in seen_identities:
-            continue
-        misses = _miss_count(v) + 1
-        cells = []
-        if "Scan Miss Count" in pc:
-            cells.append({"columnId": pc["Scan Miss Count"], "value": misses})
-        if "Last Scan ID" in pc:
-            cells.append({"columnId": pc["Last Scan ID"], "value": scan_id})
-        if misses >= 2:
-            if "Listing Status" in pc:
-                cells.append({"columnId": pc["Listing Status"], "value": "Removed"})
-            if "Removal Evidence" in pc:
-                cells.append({"columnId": pc["Removal Evidence"], "value":
-                    "Not observed in two consecutive normalized open-market discovery scans; provisional removal only, not evidence of seller financial distress."})
-        if cells:
-            miss_updates.append({"id": row["id"], "cells": cells})
-    if open_market_scan_complete and miss_updates:
-        property_updates.extend(miss_updates)
-
-    if new_property_rows:
-        add_result = put_rows(PROPERTY_SHEET, new_property_rows)
-        print(f"Property discovery found {len(discovered)} candidates ({len(open_market)} normalized open-market listings); added {len(new_property_rows)} new Property Leads.")
-        if property_updates:
-            update_result = put_rows(PROPERTY_SHEET, property_updates)
-            print(f"Historical property updates applied: {len(property_updates)} rows; resultCode={update_result.get('resultCode')}")
-
-        if add_result:
-            print(f"Property Leads discovery resultCode={add_result.get('resultCode')} message={add_result.get('message')}")
-    else:
-        if property_updates:
-            update_result = put_rows(PROPERTY_SHEET, property_updates)
-            print(f"Historical property updates applied: {len(property_updates)} rows; resultCode={update_result.get('resultCode')}")
-        print(f"Property discovery found {len(discovered)} candidates ({len(open_market)} normalized open-market listings); no new Property Leads required.")
-
-    existing = {}
-    for row in fs.get("rows", []):
-        v = values(row, fc)
-        fid = norm(v.get("Finance Lead ID"))
-        if fid:
-            existing[fid] = row
-
-    updates, seen = [], set()
-    for row in ps.get("rows", []):
-        v = values(row, pc)
-        lid = str(v.get("Lead ID") or "").strip()
-        rt = route(v)
-        if not lid or not rt:
-            continue
-
-        key = hashlib.sha256("|".join(
-            norm(v.get(k)) for k in ("Area", "Asking Price", "Seller Name", "Source URL")
-        ).encode()).hexdigest()[:16]
-        if key in seen:
-            continue
-        seen.add(key)
-
-        target = existing.get(norm("FIN-" + lid))
-        if not target:
-            continue
-
-        compliance_status = compliance(v)
-        finance_gate = finance_ready(v)
-        note = (
-            "Automated route classification: " + rt + ". "
-            + ("Minimum evidence gate passed; case remains subject to human verification."
-               if finance_gate else
-               "Minimum finance evidence gate NOT passed; case remains for evidence review.")
-            + " No personalised regulated finance advice, referral or outreach performed."
+            required_finance = {"Finance Lead ID", "Lead Type", "Lead Score", "Compliance Status", "Finance Status"}
+            missing_property = required_property - set(pc)
+            missing_finance = required_finance - set(fc)
+            if missing_property:
+                raise RuntimeError("Property Leads sheet is missing columns: " + ", ".join(sorted(missing_property)))
+            if missing_finance:
+                raise RuntimeError("Finance Opportunities sheet is missing columns: " + ", ".join(sorted(missing_finance)))
+        
+            valid_lead_types = {
+                "Off-Market", "Private Seller", "Distressed Sale", "Probate", "Auction",
+                "Developer Site", "Price Reduced", "Repossession", "Open Market Listing",
+            }
+            valid_opportunity_types = {
+                "Buy-to-Let", "Development", "JV Partnership", "Flip/Refurb",
+                "Portfolio Acquisition", "Land Assembly", "Private Sale", "Property Acquisition",
+            }
+            for candidate in discovered:
+                if candidate.get("Lead Type") not in valid_lead_types:
+                    candidate["Lead Type"] = "Open Market Listing"
+                if candidate.get("Opportunity Type") not in valid_opportunity_types:
+                    candidate["Opportunity Type"] = "Property Acquisition"
+        
+            existing_property = {}
+            existing_property_identity = {}
+            for row in ps.get("rows", []):
+                v = values(row, pc)
+                for key in (norm(v.get("Lead ID")), norm(v.get("Source URL"))):
+                    if key:
+                        existing_property[key] = row
+                identity = _identity_key(v)
+                if identity:
+                    existing_property_identity[identity] = row
+        
+            new_property_rows = []
+            property_updates = []
+            for candidate in discovered:
+                m = motivation_score(candidate)
+                candidate["Motivation Score"] = m
+                candidate["Lead Score"] = "Hot" if m >= 70 else ("Warm" if m >= 45 else "Cold")
+                candidate["Last Scan ID"] = scan_id
+                candidate["Scan Miss Count"] = 0
+                existing_row = (
+                    existing_property.get(norm(candidate.get("Lead ID")))
+                    or existing_property.get(norm(candidate.get("Source URL")))
+                    or existing_property_identity.get(_identity_key(candidate))
+                )
+                previous = values(existing_row, pc) if existing_row else None
+                previous_identity = _identity_key(previous) if previous else None
+                candidate_identity = _identity_key(candidate)
+                same_identity = bool(existing_row and candidate_identity and previous_identity and candidate_identity == previous_identity)
+                url_changed = bool(existing_row and norm(candidate.get("Source URL")) != norm((previous or {}).get("Source URL")))
+                previously_removed = str((previous or {}).get("Listing Status") or "") == "Removed"
+                genuine_relist = bool(same_identity and previously_removed)
+                relist_confidence = "High" if (genuine_relist and url_changed) else ("Medium" if genuine_relist else "Unknown")
+                historical = _listing_fields(candidate, previous, genuine_relist, relist_confidence)
+                candidate.update(historical)
+                candidate["Motivation Trend"] = motivation_trend(_history(previous), m)
+                if existing_row:
+                    discovery_fields = {
+                        "Lead Type", "Opportunity Type", "Area", "Asking Price", "Lead Score",
+                        "Source", "Source URL", "Opportunity Evidence", "Notes", "Motivation Score",
+                        "Listing Status", "Relisting Flag", "Relisting Confidence", "Stale Band",
+                        "Property Identity Key", "First Seen", "Last Seen", "Days on Market",
+                        "Scan Miss Count", "Last Scan ID", "Removal Evidence", "Portal Listing ID", "Postcode",
+                        "Original Asking Price", "Current Asking Price", "Reduction Amount",
+                        "Reduction %", "Reduction Count", "Motivation Trend", "Evidence History",
+                        "Previous Source URL",
+                    }
+                    cells = [{"columnId": pc[name], "value": value} for name, value in candidate.items()
+                             if name in pc and name in discovery_fields and value is not None]
+                    if cells:
+                        property_updates.append({"id": existing_row["id"], "cells": cells})
+                    continue
+                cells = []
+                for name, value in candidate.items():
+                    if name in pc and value is not None:
+                        cells.append({"columnId": pc[name], "value": value})
+                if cells:
+                    new_property_rows.append({"toBottom": True, "cells": cells})
+        
+            # Conservative removal gate: only normalized open-market rows qualify,
+            # and two consecutive misses are required before a provisional Removed status.
+            seen_identities = {_identity_key(x) for x in discovered if _identity_key(x)}
+            miss_updates = []
+            for row in ps.get("rows", []):
+                v = values(row, pc)
+                if not norm(v.get("Source")).startswith("open-properties/"):
+                    continue
+                if str(v.get("Listing Status") or "Unknown") not in {"Active", "Relisted", "Unknown"}:
+                    continue
+                identity = _identity_key(v)
+                if identity and identity in seen_identities:
+                    continue
+                misses = _miss_count(v) + 1
+                cells = []
+                if "Scan Miss Count" in pc:
+                    cells.append({"columnId": pc["Scan Miss Count"], "value": misses})
+                if "Last Scan ID" in pc:
+                    cells.append({"columnId": pc["Last Scan ID"], "value": scan_id})
+                if misses >= 2:
+                    if "Listing Status" in pc:
+                        cells.append({"columnId": pc["Listing Status"], "value": "Removed"})
+                    if "Removal Evidence" in pc:
+                        cells.append({"columnId": pc["Removal Evidence"], "value":
+                            "Not observed in two consecutive normalized open-market discovery scans; provisional removal only, not evidence of seller financial distress."})
+                if cells:
+                    miss_updates.append({"id": row["id"], "cells": cells})
+            if open_market_scan_complete and miss_updates:
+                property_updates.extend(miss_updates)
+        
+            if new_property_rows:
+                add_result = put_rows(PROPERTY_SHEET, new_property_rows)
+                print(f"Property discovery found {len(discovered)} candidates ({len(open_market)} normalized open-market listings); added {len(new_property_rows)} new Property Leads.")
+                if property_updates:
+                    update_result = put_rows(PROPERTY_SHEET, property_updates)
+                    print(f"Historical property updates applied: {len(property_updates)} rows; resultCode={update_result.get('resultCode')}")
+        
+                if add_result:
+                    print(f"Property Leads discovery resultCode={add_result.get('resultCode')} message={add_result.get('message')}")
+            else:
+                if property_updates:
+                    update_result = put_rows(PROPERTY_SHEET, property_updates)
+                    print(f"Historical property updates applied: {len(property_updates)} rows; resultCode={update_result.get('resultCode')}")
+                print(f"Property discovery found {len(discovered)} candidates ({len(open_market)} normalized open-market listings); no new Property Leads required.")
+        
+            existing = {}
+            for row in fs.get("rows", []):
+                v = values(row, fc)
+                fid = norm(v.get("Finance Lead ID"))
+                if fid:
+                    existing[fid] = row
+        
+            updates, seen = [], set()
+            for row in ps.get("rows", []):
+                v = values(row, pc)
+                lid = str(v.get("Lead ID") or "").strip()
+                rt = route(v)
+                if not lid or not rt:
+                    continue
+        
+                key = hashlib.sha256("|".join(
+                    norm(v.get(k)) for k in ("Area", "Asking Price", "Seller Name", "Source URL")
+                ).encode()).hexdigest()[:16]
+                if key in seen:
+                    continue
+                seen.add(key)
+        
+                target = existing.get(norm("FIN-" + lid))
+                if not target:
+                    continue
+        
+                compliance_status = compliance(v)
+                finance_gate = finance_ready(v)
+                note = (
+                    "Automated route classification: " + rt + ". "
+                    + ("Minimum evidence gate passed; case remains subject to human verification."
+                       if finance_gate else
+                       "Minimum finance evidence gate NOT passed; case remains for evidence review.")
+                    + " No personalised regulated finance advice, referral or outreach performed."
+                )
+                mapped = {
+                    "Lead Type": rt,
+                    "Lead Score": score(v) if finance_gate else "Cold",
+                    "Compliance Status": compliance_status,
+                    "Best Route": "Potential " + rt if finance_gate else "Evidence Review Required",
+                    "Opportunity Action": (
+                        "Verify borrower/property facts, finance requirement and exit before referral"
+                        if finance_gate else
+                        "Obtain and verify minimum evidence before finance qualification"
+                    ),
+                    "Finance Status": "Qualifying" if finance_gate else "Review",
+                    "Next Action": (
+                        "Collect missing case facts; compliance gate before referral"
+                        if finance_gate else
+                        "Verify source evidence, asking price and listing status"
+                    ),
+                    "Notes": note,
+                }
+                cells = [{"columnId": fc[name], "value": val} for name, val in mapped.items() if name in fc]
+                updates.append({"id": target["id"], "cells": cells})
+        
+            result = put_rows(FINANCE_SHEET, updates)
+            _write_scan_report(scan_id, len(discovered), len(open_market), open_market_scan_complete, "SUCCESS")
+            print(f"Property agent engine processed {len(updates)} finance records.")
+            if result:
+                print(f"Smartsheet update resultCode={result.get('resultCode')} message={result.get('message')}")
+        
+    except Exception as exc:
+        _write_scan_report(
+            scan_id,
+            0,
+            0,
+            False,
+            "FAILED",
+            error=f"{type(exc).__name__}: {exc}",
         )
-        mapped = {
-            "Lead Type": rt,
-            "Lead Score": score(v) if finance_gate else "Cold",
-            "Compliance Status": compliance_status,
-            "Best Route": "Potential " + rt if finance_gate else "Evidence Review Required",
-            "Opportunity Action": (
-                "Verify borrower/property facts, finance requirement and exit before referral"
-                if finance_gate else
-                "Obtain and verify minimum evidence before finance qualification"
-            ),
-            "Finance Status": "Qualifying" if finance_gate else "Review",
-            "Next Action": (
-                "Collect missing case facts; compliance gate before referral"
-                if finance_gate else
-                "Verify source evidence, asking price and listing status"
-            ),
-            "Notes": note,
-        }
-        cells = [{"columnId": fc[name], "value": val} for name, val in mapped.items() if name in fc]
-        updates.append({"id": target["id"], "cells": cells})
-
-    result = put_rows(FINANCE_SHEET, updates)
-    _write_scan_report(scan_id, len(discovered), len(open_market), open_market_scan_complete, "SUCCESS")
-    print(f"Property agent engine processed {len(updates)} finance records.")
-    if result:
-        print(f"Smartsheet update resultCode={result.get('resultCode')} message={result.get('message')}")
+        raise
 
 if __name__ == "__main__":
     run()
