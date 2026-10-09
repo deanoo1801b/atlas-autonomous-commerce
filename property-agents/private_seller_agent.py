@@ -16,13 +16,14 @@ from urllib.request import Request, urlopen
 from urllib.robotparser import RobotFileParser
 
 SOURCES = [
-    {"name": "Bybricks", "base": "https://www.bybricks.co.uk/", "index": "https://www.bybricks.co.uk/"},
-    {"name": "Keyzee", "base": "https://keyzee.co.uk/", "index": "https://keyzee.co.uk/"},
-    {"name": "FYSH", "base": "https://www.fysh.uk/", "index": "https://www.fysh.uk/"},
-    {"name": "OffAgent", "base": "https://www.offagent.co.uk/", "index": "https://www.offagent.co.uk/properties"},
-    {"name": "OpenMoov", "base": "https://openmoov.co.uk/", "index": "https://openmoov.co.uk/"},
-    {"name": "Hauski", "base": "https://www.hauski.com/", "index": "https://www.hauski.com/"},
-    {"name": "Roof Over Your Head", "base": "https://www.roofoveryourhead.com/", "index": "https://www.roofoveryourhead.com/"},
+    {"name": "Keyzee", "base": "https://keyzee.co.uk/", "index": "https://keyzee.co.uk/", "owner_only": True},
+    {"name": "FYSH", "base": "https://www.fysh.uk/", "index": "https://www.fysh.uk/", "owner_only": True},
+    {"name": "OffAgent", "base": "https://www.offagent.co.uk/", "index": "https://www.offagent.co.uk/properties", "owner_only": True},
+    {"name": "Hauski", "base": "https://www.hauski.com/", "index": "https://www.hauski.com/", "owner_only": True},
+    {"name": "OwnerBridge", "base": "https://www.ownerbridge.co.uk/", "index": "https://www.ownerbridge.co.uk/", "owner_only": True},
+    {"name": "FMDirect", "base": "https://fairmovedirect.co.uk/", "index": "https://fairmovedirect.co.uk/", "owner_only": True},
+    {"name": "Bybricks", "base": "https://www.bybricks.co.uk/", "index": "https://www.bybricks.co.uk/", "owner_only": False},
+    {"name": "OpenMoov", "base": "https://openmoov.co.uk/", "index": "https://openmoov.co.uk/", "owner_only": False},
 ]
 
 UA = "InspirationPropertiesPublicListingAgent/1.0 (+public-listing-discovery)"
@@ -124,9 +125,11 @@ def discover_private_sellers():
             # Strong private-owner signal from the source itself.
             private_signal = any(k in low for k in (
                 "private seller", "owner listed", "owner-listed", "sell privately",
-                "directly by the owner", "private vendor", "homeowner"
+                "directly by the owner", "private vendor", "homeowner",
+                "owner-to-buyer", "no estate agent", "without an estate agent",
+                "listed by the owner", "listed directly by owners"
             ))
-            if not private_signal:
+            if not source.get("owner_only") and not private_signal:
                 continue
             price = _price(text)
             digest = hashlib.sha256(url.encode()).hexdigest()[:16]
@@ -134,6 +137,9 @@ def discover_private_sellers():
                 "Lead ID": f"PS-{digest}",
                 "Lead Type": "Private Seller",
                 "Opportunity Type": "Private Sale",
+                "Seller Type": "Direct Owner",
+                "Contact Route": "Platform only; human approval required",
+
                 "Area": None,
                 "Asking Price": price,
                 "Seller Name": None,
