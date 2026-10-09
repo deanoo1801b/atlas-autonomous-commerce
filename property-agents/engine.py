@@ -387,7 +387,8 @@ def run():
         updates.append({"id": target["id"], "cells": cells})
 
     result = put_rows(FINANCE_SHEET, updates)
-    _write_scan_report(scan_id, len(discovered), len(open_market), open_market_scan_complete, "SUCCESS")\n    print(f"Property agent engine processed {len(updates)} finance records.")
+    _write_scan_report(scan_id, len(discovered), len(open_market), open_market_scan_complete, "SUCCESS")
+    print(f"Property agent engine processed {len(updates)} finance records.")
     if result:
         print(f"Smartsheet update resultCode={result.get('resultCode')} message={result.get('message')}")
 
