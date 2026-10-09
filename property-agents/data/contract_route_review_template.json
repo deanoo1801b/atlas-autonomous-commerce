@@ -1,0 +1,27 @@
+{
+  "deals": [
+    {
+      "deal_id": "EXAMPLE-001",
+      "source_evidence_url": "https://example.org/property-listing",
+      "asking_price": 140000,
+      "estimated_market_value": 200000,
+      "comparable_sales_count": 3,
+      "sourcing_fee": 3000,
+      "assignment_fee": 5000,
+      "contract_purchase_price": 140000,
+      "deposit_at_risk": 5000,
+      "assignment_permitted": false,
+      "seller_consent_required": true,
+      "seller_consent_obtained": false,
+      "solicitor_reviewed": false,
+      "title_checked": false,
+      "buyer_identified": false,
+      "buyer_funding_reviewed": false,
+      "fee_disclosed": false,
+      "aml_status": "unknown",
+      "redress_status": "unknown",
+      "marketing_authority_confirmed": false,
+      "human_reviewed": false
+    }
+  ]
+}

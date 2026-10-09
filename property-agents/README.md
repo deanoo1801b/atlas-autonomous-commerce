@@ -61,3 +61,14 @@ The offline `contract_route_comparator.py` compares two possible routes for an i
 The comparator is deliberately fail-closed. It does not establish that a fee is legally payable, that a contract can be assigned, that seller consent is unnecessary, that an activity is outside estate agency rules, or that a buyer can complete. Assignment rights, consent, title, AML/redress status, marketing authority, fee disclosure, funding evidence and independent solicitor review must be confirmed by a human.
 
 Even a route marked `ELIGIBLE_FOR_SOLICITOR/COMPLIANCE_REVIEW` is **not approved to transact**. It only means the recorded fields passed this module's preliminary checks. The overall status always remains `HUMAN_AND_SOLICITOR_REVIEW_REQUIRED`. No contact, offer, contract, payment, referral or publication is triggered. The module does not write to Smartsheet.
+
+
+## Manual Contract Route Review Queue
+
+Use `contract_route_review.py` to compare manually entered opportunities without connecting to live systems. Copy `data/contract_route_review_template.json`, replace the illustrative record with evidence-backed fields, then run from the `property-agents` directory:
+
+```bash
+python contract_route_review.py data/contract_route_review_template.json --output property-route-review-report.json
+```
+
+The report compares sourcing and assignment route gates for each record. It writes only the local output JSON file; it does not call the internet, contact any person, create an offer, sign or amend a contract, pay money, or read/write Smartsheet. The template URL and figures are examples only and must not be treated as a real property lead. Never put identity documents, bank statements or sensitive personal data in this JSON file.
