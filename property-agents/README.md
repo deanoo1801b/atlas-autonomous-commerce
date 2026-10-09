@@ -32,3 +32,14 @@ Important limits:
 - Net profit is calculated only when the completed-value estimate and every required cost input are available. Results are illustrative and before tax; no costs are silently assumed.
 - The engine does not contact sellers, councils, agents or advisers.
 - Optional runtime settings: `ATLAS_PLANNING_ENABLED=false` disables lookups; `ATLAS_PLANNING_MAX_PROPERTIES=25` limits candidate lookups per run; `ATLAS_PLANNING_REQUEST_DELAY=0.25` sets a polite delay between API calls.
+
+
+## Verified Buyer & Investor Intelligence
+
+The offline `buyer_intelligence.py` module adds a verification gate and criteria-based deal matching. It does not discover buyers automatically, scrape personal data, contact anyone, or store proof-of-funds documents. Buyer profiles must be sourced lawfully and reviewed by a person.
+
+Verification requires recorded identity verification, a checked funding-evidence status, a verification date no more than 90 days old, and recorded consent. This status means human review is recorded; it does not guarantee available funds or completion. Store verification metadata only, not bank statements or identity documents in ordinary spreadsheets.
+
+Matching considers budget, location, strategy, stated minimum profit, and valuation evidence. Scores are triage aids, not investment recommendations. Human review remains required before any deal pack or introduction.
+
+The commercial sourcing workflow remains disabled pending regulatory review. HMRC guidance says property sourcing/deal packaging and introducing buyers or investors to property deals can constitute estate agency work; check supervision and redress requirements before trading. No outreach, referral, or financial-promotion publishing is enabled by this module.

@@ -17,7 +17,8 @@
     "pipeline_manager",
     "social_content",
     "orchestrator",
-    "planning_opportunity_detector"
+    "planning_opportunity_detector",
+    "buyer_intelligence"
   ],
   "hard_stops": [
     "unverified_identity",
@@ -112,5 +113,28 @@
       "purchase_costs",
       "selling_costs"
     ]
+  },
+  "buyer_intelligence": {
+    "enabled": true,
+    "mode": "offline_matching_only",
+    "buyer_discovery": false,
+    "contacting_enabled": false,
+    "referral_enabled": false,
+    "publishing_enabled": false,
+    "verification_max_age_days": 90,
+    "required_checks": [
+      "identity_verified",
+      "funding_evidence_status",
+      "verification_date",
+      "consent_status"
+    ],
+    "matching_criteria": [
+      "budget",
+      "location",
+      "investment_strategy",
+      "minimum_profit_before_tax",
+      "valuation_evidence"
+    ],
+    "guardrail": "Scores are triage only; human review required. Never label buyer verified without evidence."
   }
 }
