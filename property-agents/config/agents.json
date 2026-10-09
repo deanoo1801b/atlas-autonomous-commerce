@@ -19,7 +19,8 @@
     "orchestrator",
     "planning_opportunity_detector",
     "buyer_intelligence",
-    "buyer_prospecting"
+    "buyer_prospecting",
+    "contract_route_comparator"
   ],
   "hard_stops": [
     "unverified_identity",
@@ -147,5 +148,22 @@
     "publishing_enabled": false,
     "public_profiles_are_verified_buyers": false,
     "guardrail": "Record source evidence and published criteria only. Verify identity, current mandate, purchasing capacity and consent separately before treating any person or business as a verified buyer."
+  },
+  "contract_route_comparator": {
+    "enabled": true,
+    "mode": "offline_analysis_only",
+    "compare_routes": [
+      "contract_assignment",
+      "property_sourcing"
+    ],
+    "automatic_contacting": false,
+    "automatic_offers": false,
+    "automatic_contracting": false,
+    "automatic_payments": false,
+    "referral_enabled": false,
+    "publishing_enabled": false,
+    "hard_stop_on_unresolved_legal_risk": true,
+    "minimum_comparable_sales": 3,
+    "guardrail": "Scenario comparison only, not legal advice or a recommendation to transact. Require independent solicitor review and human approval. Never infer assignment rights, seller consent, regulatory compliance, or buyer funding."
   }
 }

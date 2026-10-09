@@ -52,3 +52,12 @@ The commercial sourcing workflow remains disabled pending regulatory review. HMR
 `buyer_prospecting.py` loads and validates this register, fails closed if a public prospect is accidentally labelled verified, and filters prospects by stated geography and strategy. Published profiles are starting points, not endorsements. Current mandates, legal identities, available funds, and willingness to consider sourced deals have not been independently confirmed.
 
 Do not store identity documents or bank statements in this register. Contacting, referrals, and publishing remain disabled; do not outreach or make introductions until applicable regulatory and data-protection requirements are reviewed.
+
+
+## Contract Assignment vs Property Sourcing Comparator
+
+The offline `contract_route_comparator.py` compares two possible routes for an individual property: paid property sourcing and contract assignment. It reports known fee inputs, a provisional BMV discount calculation, missing evidence, regulatory blockers and route-specific legal risks.
+
+The comparator is deliberately fail-closed. It does not establish that a fee is legally payable, that a contract can be assigned, that seller consent is unnecessary, that an activity is outside estate agency rules, or that a buyer can complete. Assignment rights, consent, title, AML/redress status, marketing authority, fee disclosure, funding evidence and independent solicitor review must be confirmed by a human.
+
+Even a route marked `ELIGIBLE_FOR_SOLICITOR/COMPLIANCE_REVIEW` is **not approved to transact**. It only means the recorded fields passed this module's preliminary checks. The overall status always remains `HUMAN_AND_SOLICITOR_REVIEW_REQUIRED`. No contact, offer, contract, payment, referral or publication is triggered. The module does not write to Smartsheet.
