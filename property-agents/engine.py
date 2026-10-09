@@ -200,6 +200,7 @@ def _write_scan_report(scan_id, discovered_count, open_market_count, open_market
 def run():
     if DRY_RUN:
         print("Dry-run health check passed. No Smartsheet reads or writes performed.")
+        _write_scan_report(_scan_id(), 0, 0, False, "DRY_RUN")
         return
 
     # Public private-seller discovery runs before qualification. It only creates
