@@ -354,6 +354,7 @@ def run():
                         row for row in ps.get("rows", [])
                         if values(row, pc) == previous
                     )
+                    candidate["Property Identity Key"] = previous.get("Property Identity Key") or _identity_key(previous)
             historical = _listing_fields(candidate, previous, genuine_relist, relist_confidence)
             candidate.update(historical)
             candidate["Motivation Trend"] = motivation_trend(_history(previous), m)
