@@ -41,6 +41,36 @@ jobs:
       - name: Validate Python syntax
         run: python -m py_compile property-agents/*.py
 
+      - name: Validate autonomy configuration
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          cfg = json.loads(Path("property-agents/config/agents.json").read_text(encoding="utf-8"))
+          required = {
+              "mode": "controlled_autonomy",
+              "contacting_enabled": False,
+              "referral_enabled": False,
+              "publishing_enabled": False,
+          }
+          for key, expected in required.items():
+              if cfg.get(key) != expected:
+                  raise SystemExit(f"Unsafe configuration: {key}={cfg.get(key)!r}; expected {expected!r}")
+
+          engine = Path("property-agents/engine.py").read_text(encoding="utf-8")
+          forbidden_ids = (
+              "95VHjPc74mJh2Q6485MHCqGjQP5p97wmW4x54Rg1",
+              "3007077934124932",
+              "890673877438340",
+          )
+          for value in forbidden_ids:
+              if value in engine:
+                  raise SystemExit(f"Hard-coded Smartsheet ID detected in engine.py: {value}")
+
+          print("Autonomy configuration and secret-driven sheet configuration are valid.")
+          PY
+
       - name: Run offline unit tests
         working-directory: property-agents
         run: python -m unittest discover -s tests -v
