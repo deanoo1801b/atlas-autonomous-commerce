@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import requests
 from private_seller_agent import discover_private_sellers
 from open_properties_agent import discover_open_properties, to_property_lead, last_scan_complete
-from motivated_seller_agent import motivation_score
+from motivated_seller_agent import motivation_score, motivation_trend
 
 BASE = "https://api.smartsheet.com/2.0"
 TOKEN = os.getenv("SMARTSHEET_API_TOKEN", "").strip()
@@ -275,6 +275,7 @@ def run():
         relist_confidence = "High" if (genuine_relist and url_changed) else ("Medium" if genuine_relist else "Unknown")
         historical = _listing_fields(candidate, previous, genuine_relist, relist_confidence)
         candidate.update(historical)
+        candidate["Motivation Trend"] = motivation_trend(_history(previous), m)
         if existing_row:
             discovery_fields = {
                 "Lead Type", "Opportunity Type", "Area", "Asking Price", "Lead Score",
