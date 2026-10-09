@@ -6,7 +6,7 @@ import unittest
 
 os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
 
-from engine import _identity_key, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates, classify_relisting
+from engine import _identity_key, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates, classify_relisting, _property_relisting_key
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
 
@@ -247,6 +247,18 @@ class HistoryTests(unittest.TestCase):
         previous = {"Lead ID":"OP-abc123","Source":"open-properties/rightmove","Source URL":"https://example.test/property/old","Property Identity Key":"open-properties/rightmove:id:abc123","Listing Status":"Removed"}
         current = dict(previous); current["Source URL"]="https://example.test/property/new"
         self.assertEqual(classify_relisting(previous, current), (True, "High"))
+
+    def test_removed_new_listing_id_same_property_is_relisted(self):
+        previous = {"Lead ID":"OP-old","Source":"open-properties/rightmove","Source URL":"https://example.test/property/old","Property Identity Key":"open-properties/rightmove:id:old","Listing Status":"Removed","Area":"10 Test Street","Postcode":"SW1A 1AA"}
+        current = {"Lead ID":"OP-new","Source":"open-properties/rightmove","Source URL":"https://example.test/property/new","Property Identity Key":"open-properties/rightmove:id:new","Listing Status":"Active","Area":"10 Test Street","Postcode":"SW1A 1AA"}
+        self.assertEqual(_property_relisting_key(previous), _property_relisting_key(current))
+        self.assertEqual(classify_relisting(previous, current), (True, "High"))
+
+    def test_missing_postcode_does_not_create_soft_relist_match(self):
+        previous = {"Lead ID":"OP-old","Source":"open-properties/rightmove","Listing Status":"Removed","Area":"10 Test Street"}
+        current = {"Lead ID":"OP-new","Source":"open-properties/rightmove","Area":"10 Test Street"}
+        self.assertIsNone(_property_relisting_key(previous))
+        self.assertEqual(classify_relisting(previous, current), (False, "Unknown"))
 
     def test_removed_different_identity_is_not_relisted(self):
         previous = {"Lead ID":"OP-abc123","Source":"open-properties/rightmove","Source URL":"https://example.test/property/old","Property Identity Key":"open-properties/rightmove:id:abc123","Listing Status":"Removed"}
