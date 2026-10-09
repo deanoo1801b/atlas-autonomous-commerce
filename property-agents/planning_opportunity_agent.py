@@ -87,6 +87,8 @@ def _get_applications(postcode: str) -> list[dict[str, Any]]:
         headers={"Accept": "application/json", "User-Agent": "InspirationPropertiesUK/1.0 (public planning data)"},
     )
     response.raise_for_status()
+    if REQUEST_DELAY:
+        time.sleep(REQUEST_DELAY)
     payload = response.json()
     entities = payload.get("entities", [])
     return entities if isinstance(entities, list) else []

@@ -4,7 +4,7 @@ import requests
 from private_seller_agent import discover_private_sellers
 from open_properties_agent import discover_open_properties, to_property_lead, last_scan_complete
 from motivated_seller_agent import motivation_score, motivation_trend
-from planning_opportunity_agent import analyse_planning_candidate
+from planning_opportunity_agent import analyse_planning_candidate, development_profit_scenario
 
 BASE = "https://api.smartsheet.com/2.0"
 TOKEN = os.getenv("SMARTSHEET_API_TOKEN", "").strip()
@@ -320,18 +320,37 @@ def run():
             try:
                 planning = analyse_planning_candidate(candidate)
                 candidate.update({k: v for k, v in planning.items() if k != "Planning Evidence"})
+                notes = candidate.get("Notes")
+                try:
+                    notes_obj = json.loads(notes) if isinstance(notes, str) else {}
+                    if not isinstance(notes_obj, dict): notes_obj = {}
+                except (TypeError, json.JSONDecodeError):
+                    notes_obj = {"previous_notes": str(notes)[:1000]} if notes else {}
                 if planning.get("Planning Evidence"):
-                    notes = candidate.get("Notes")
-                    try:
-                        notes_obj = json.loads(notes) if isinstance(notes, str) else {}
-                        if not isinstance(notes_obj, dict): notes_obj = {}
-                    except (TypeError, json.JSONDecodeError):
-                        notes_obj = {"previous_notes": str(notes)[:1000]} if notes else {}
                     notes_obj["planning_evidence"] = planning["Planning Evidence"]
-                    candidate["Notes"] = json.dumps(notes_obj, separators=(",", ":"))[:4000]
+                profit = development_profit_scenario(
+                    candidate.get("Asking Price"),
+                    candidate.get("Estimated Completed Value") or candidate.get("Post-Works Market Value") or candidate.get("Estimated Market Value After Works"),
+                    candidate.get("Estimated Works Cost") or candidate.get("Works Cost"),
+                    candidate.get("Professional Fees"),
+                    candidate.get("Finance and Holding Costs"),
+                    candidate.get("Purchase Costs"),
+                    candidate.get("Selling Costs"),
+                )
+                notes_obj["development_profit_scenario"] = profit
+                candidate["Profit Estimate Status"] = profit.get("status")
+                candidate["Estimated Net Profit Before Tax"] = profit.get("estimated_net_profit_before_tax")
+                candidate["Estimated Completed Value"] = profit.get("estimated_completed_value")
+                candidate["Estimated Total Project Cost"] = profit.get("estimated_total_cost")
+                candidate["Notes"] = json.dumps(notes_obj, separators=(",", ":"))[:4000]
                 if planning.get("Planning Opportunity Summary"):
                     existing_evidence = str(candidate.get("Opportunity Evidence") or "").strip()
-                    candidate["Opportunity Evidence"] = (existing_evidence + " Planning scan: " + planning["Planning Opportunity Summary"]).strip()[:4000]
+                    profit_text = (
+                        f" Illustrative estimated net profit before tax: £{profit['estimated_net_profit_before_tax']:,.0f}."
+                        if profit.get("estimated_net_profit_before_tax") is not None
+                        else " Profit not estimated: completed value and all project cost inputs must be evidenced first."
+                    )
+                    candidate["Opportunity Evidence"] = (existing_evidence + " Planning scan: " + planning["Planning Opportunity Summary"] + profit_text).strip()[:4000]
                 planning_processed += 1
             except Exception as planning_exc:
                 candidate["Planning Review Status"] = "Planning API error - council portal review required"
@@ -423,6 +442,7 @@ def run():
                     "Reduction %", "Reduction Count", "Motivation Trend", "Evidence History",
                     "Previous Source URL", "Planning Review Status", "Planning Opportunity Summary",
                     "Planning Precedent Count", "Planning Same-Road Count", "Planning Potentially Approved Count", "Planning Search URL",
+                    "Profit Estimate Status", "Estimated Net Profit Before Tax", "Estimated Completed Value", "Estimated Total Project Cost",
                 }
                 cells = [{"columnId": pc[name], "value": value} for name, value in candidate.items()
                          if name in pc and name in discovery_fields and value is not None]
