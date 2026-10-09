@@ -6,7 +6,7 @@ import unittest
 
 os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
 
-from engine import _identity_key, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report
+from engine import _identity_key, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
 
@@ -47,6 +47,56 @@ class AdapterTests(unittest.TestCase):
         self.assertGreaterEqual(motivation_score({"Lead Type": "Price Reduced"}), 0)
         self.assertLessEqual(motivation_score({"Lead Type": "Price Reduced"}), 100)
 
+
+class RemovalGateTests(unittest.TestCase):
+    def setUp(self):
+        self.cmap = {
+            "Lead ID": 1, "Source": 2, "Listing Status": 3,
+            "Scan Miss Count": 4, "Last Scan ID": 5, "Removal Evidence": 6,
+            "Property Identity Key": 7,
+        }
+
+    def _row(self, misses=0, status="Active"):
+        return {
+            "id": 101,
+            "cells": [
+                {"columnId": 1, "value": "OP-123"},
+                {"columnId": 2, "value": "open-properties/rightmove"},
+                {"columnId": 3, "value": status},
+                {"columnId": 4, "value": misses},
+                {"columnId": 7, "value": "open-properties/rightmove:id:123"},
+            ],
+        }
+
+    def test_one_missed_complete_scan_does_not_remove(self):
+        updates = removal_updates([self._row(0)], self.cmap, set(), True, "SCAN-1")
+        values_flat = [cell["value"] for cell in updates[0]["cells"]]
+        self.assertIn(1, values_flat)
+        self.assertNotIn("Removed", values_flat)
+
+    def test_second_consecutive_miss_marks_removed(self):
+        updates = removal_updates([self._row(1)], self.cmap, set(), True, "SCAN-2")
+        values_flat = [cell["value"] for cell in updates[0]["cells"]]
+        self.assertIn("Removed", values_flat)
+        self.assertIn(2, values_flat)
+
+    def test_incomplete_scan_produces_no_removal_updates(self):
+        self.assertEqual(
+            removal_updates([self._row(1)], self.cmap, set(), False, "SCAN-INCOMPLETE"),
+            [],
+        )
+
+    def test_seen_identity_is_not_counted_as_a_miss(self):
+        self.assertEqual(
+            removal_updates(
+                [self._row(0)],
+                self.cmap,
+                {"open-properties/rightmove:id:123"},
+                True,
+                "SCAN-SEEN",
+            ),
+            [],
+        )
 
 class ScanAuditTests(unittest.TestCase):
     def _read_report(self, status, error=None):
