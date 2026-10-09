@@ -16,8 +16,11 @@ from typing import Any
 _LAST_SCAN_COMPLETE = True
 
 DEFAULT_LOCATIONS = (
-    "London", "Birmingham", "Manchester", "Leeds", "Liverpool",
-    "Bristol", "Nottingham", "Glasgow", "Edinburgh",
+    "London", "Croydon", "Bromley", "Lewisham", "Greenwich", "Bexley",
+    "Sutton", "Kingston upon Thames", "Enfield", "Harrow", "Watford",
+    "Dartford", "Erith", "Romford", "Grays", "Gravesend", "Swanley",
+    "Sevenoaks", "Brighton", "Crawley", "East Grinstead", "Redhill",
+    "Reigate", "Guildford", "Woking", "Chatham", "Rochester", "Maidstone", "Canterbury",
 )
 
 def _enabled() -> bool:

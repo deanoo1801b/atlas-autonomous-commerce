@@ -103,6 +103,23 @@ def bmv_tier(estimated_market_value, asking_price, evidence_count=0):
     return "Below BMV threshold"
 
 
+LONDON_SE_POSTCODE_PREFIXES = (
+    "E", "EC", "N", "NW", "SE", "SW", "W", "WC", "AL", "BN", "BR", "CM", "CO", "CR", "CT", "DA", "EN", "GU",
+    "HA", "HP", "IG", "KT", "ME", "MK", "OX", "RG", "RH", "RM", "SG", "SL", "SM", "SO", "SS", "TN", "TW", "UB", "WD",
+)
+DESIGNATED_AREA_TERMS = ("london", "croydon", "bromley", "lewisham", "greenwich", "bexley", "sutton", "kingston upon thames", "enfield", "harrow", "watford", "dartford", "erith", "romford", "grays", "gravesend", "swanley", "sevenoaks", "brighton", "crawley", "east grinstead", "redhill", "reigate", "guildford", "woking", "chatham", "rochester", "maidstone", "canterbury", "surrey", "kent", "sussex", "essex", "hertfordshire", "berkshire", "hampshire", "buckinghamshire", "oxfordshire")
+
+def geography_status(candidate):
+    """Conservative area gate; requires postcode or explicit place evidence."""
+    postcode = re.sub(r"\\s+", "", str(candidate.get("Postcode") or candidate.get("postcode") or "")).upper()
+    match = re.match(r"([A-Z]{1,2})", postcode)
+    if match:
+        return "In designated area" if match.group(1) in LONDON_SE_POSTCODE_PREFIXES else "Outside designated area"
+    text = norm(" ".join(str(candidate.get(k) or "") for k in ("Area", "Address", "Property Address", "Notes")))
+    if any(term in text for term in DESIGNATED_AREA_TERMS):
+        return "In designated area"
+    return "Needs location verification"
+
 def _stale_band(days):
     if days is None:
         return "Unknown"
@@ -400,7 +417,12 @@ def run():
     
         new_property_rows = []
         property_updates = []
+        discovered = [candidate for candidate in discovered if geography_status(candidate) != "Outside designated area"]
         for candidate in discovered:
+            candidate["Geography Review Status"] = geography_status(candidate)
+            if candidate["Geography Review Status"] == "Needs location verification":
+                candidate["Lead Score"] = "Cold"
+                candidate["Opportunity Evidence"] = (str(candidate.get("Opportunity Evidence") or "") + " Geography not verified; do not shortlist until location is confirmed.").strip()
             m = motivation_score(candidate)
             candidate["Motivation Score"] = m
             candidate["Lead Score"] = "Hot" if m >= 70 else ("Warm" if m >= 45 else "Cold")
@@ -442,7 +464,7 @@ def run():
                     "Reduction %", "Reduction Count", "Motivation Trend", "Evidence History",
                     "Previous Source URL", "Planning Review Status", "Planning Opportunity Summary",
                     "Planning Precedent Count", "Planning Same-Road Count", "Planning Potentially Approved Count", "Planning Search URL",
-                    "Profit Estimate Status", "Estimated Net Profit Before Tax", "Estimated Completed Value", "Estimated Total Project Cost",
+                    "Profit Estimate Status", "Estimated Net Profit Before Tax", "Estimated Completed Value", "Estimated Total Project Cost", "Geography Review Status",
                 }
                 cells = [{"columnId": pc[name], "value": value} for name, value in candidate.items()
                          if name in pc and name in discovery_fields and value is not None]

@@ -6,10 +6,24 @@ import unittest
 
 os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
 
-from engine import _identity_key, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates, classify_relisting, _property_relisting_key
+from engine import _identity_key, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates, classify_relisting, _property_relisting_key, geography_status
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
 from planning_opportunity_agent import analyse_planning_candidate, development_profit_scenario
+
+
+class GeographyTests(unittest.TestCase):
+    def test_london_postcode_is_in_designated_area(self):
+        self.assertEqual(geography_status({"Postcode": "SE15 4AB"}), "In designated area")
+
+    def test_south_east_postcode_is_in_designated_area(self):
+        self.assertEqual(geography_status({"Postcode": "BN1 1AA"}), "In designated area")
+
+    def test_northern_postcode_is_outside_designated_area(self):
+        self.assertEqual(geography_status({"Postcode": "M1 1AA"}), "Outside designated area")
+
+    def test_missing_geography_requires_review(self):
+        self.assertEqual(geography_status({"Area": "Unknown"}), "Needs location verification")
 
 
 class PlanningOpportunityTests(unittest.TestCase):
