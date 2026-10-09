@@ -79,3 +79,5 @@ The report compares sourcing and assignment route gates for each record. It writ
 `contract_route_comparator.py` compares property sourcing and contract-assignment routes. `property_route_review.py` maps available candidate data to that comparator and writes a JSON review-queue artifact for human review. Missing data stays missing; the module does not infer market value, sold comparables, contract rights, consent, buyer funding or legal compliance.
 
 The review queue is an audit artifact only. It does not write to Smartsheet, contact sellers or buyers, make offers, sign contracts, pay fees, refer parties or publish opportunities. Even a route passing preliminary checks remains subject to human, compliance and independent solicitor review.
+
+The workflow also uploads a self-contained HTML review page alongside the JSON queue. It escapes property/source text before rendering and clearly labels all results as review-only, never transaction approval.

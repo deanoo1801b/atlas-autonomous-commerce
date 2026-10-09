@@ -1,6 +1,6 @@
 """Build an offline contract-route review queue from property candidates."""
 from __future__ import annotations
-import json, os
+import html, json, os
 from datetime import datetime, timezone
 from typing import Any
 from contract_route_comparator import compare_routes
@@ -70,4 +70,64 @@ def write_review_queue(candidates: list[dict[str, Any]], scan_id: str, path: str
     with open(destination, "w", encoding="utf-8") as fh:
         json.dump(report, fh, indent=2, ensure_ascii=False)
         fh.write("\n")
+    write_review_html(report)
     return report
+
+
+def render_review_html(report: dict[str, Any]) -> str:
+    """Render a self-contained, escaped HTML summary for human review."""
+    def esc(value: Any) -> str:
+        return html.escape("" if value is None else str(value), quote=True)
+
+    rows = []
+    for record in report.get("records", []):
+        route_cells = []
+        for key, label in (("property_sourcing", "Sourcing"), ("contract_assignment", "Assignment")):
+            route = record.get("routes", {}).get(key, {})
+            blockers = route.get("blockers", [])
+            risks = route.get("risks", [])
+            items = "".join(f"<li>{esc(item)}</li>" for item in blockers + risks)
+            fee = route.get("gross_fee_estimate")
+            fee_text = f"£{fee:,.2f}" if isinstance(fee, (int, float)) else "Not provided"
+            route_cells.append(
+                f"<td><strong>{esc(label)}: {esc(route.get('status'))}</strong>"
+                f"<p>Gross fee input: {esc(fee_text)}</p>"
+                f"<details><summary>{len(blockers)} blockers / {len(risks)} risks</summary>"
+                f"<ul>{items or '<li>No recorded risks; independent review still required.</li>'}</ul></details></td>"
+            )
+        source = record.get("source_url")
+        source_link = f'<a href="{esc(source)}" rel="noreferrer">{esc(source)}</a>' if isinstance(source, str) and source.startswith("https://") else "Missing/invalid source URL"
+        discount = record.get("market_value_discount_pct")
+        discount_text = f"{discount:.2f}%" if isinstance(discount, (int, float)) else "Not calculated"
+        rows.append(
+            "<tr>"
+            f"<td>{esc(record.get('deal_id'))}<br>{esc(record.get('area'))}</td>"
+            f"<td>{esc(record.get('lead_type'))}<br>{esc(record.get('opportunity_type'))}</td>"
+            f"<td>{esc(record.get('asking_price'))}<br>Discount: {esc(discount_text)}<br>{esc(record.get('valuation_status'))}</td>"
+            f"<td>{source_link}</td>{''.join(route_cells)}"
+            "</tr>"
+        )
+    body = "".join(rows) or '<tr><td colspan="6">No candidates in this run. An empty queue is not evidence that no opportunities exist.</td></tr>'
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inspiration Properties — Contract Route Review</title>
+<style>
+body{{font:16px/1.5 system-ui,sans-serif;margin:1rem;color:#172033}}h1{{font-size:1.5rem}}
+.notice{{padding:1rem;border:2px solid #9b2c2c;border-radius:.5rem;background:#fff7f7}}
+.wrap{{overflow-x:auto}}table{{border-collapse:collapse;width:100%;min-width:1100px}}th,td{{border:1px solid #ccd2dc;padding:.65rem;vertical-align:top;text-align:left}}th{{background:#eef2f7}}td p{{margin:.25rem 0}}small,.muted{{color:#475569}}details{{max-width:30rem}}li{{margin:.35rem 0}}
+</style></head><body>
+<h1>Inspiration Properties UK — Contract Route Review</h1>
+<p>Scan: <strong>{esc(report.get('scan_id'))}</strong> · Generated UTC: {esc(report.get('generated_at_utc'))} · Candidates: {len(report.get('records', []))}</p>
+<div class="notice"><strong>REVIEW ONLY — NOT APPROVED TO TRANSACT.</strong>
+No seller/buyer contact, offer, contract, payment, referral, publishing or Smartsheet write is performed by this report.
+All route outcomes require human review, applicable compliance checks and independent solicitor review. Missing information is not assumed safe.</div>
+<p class="muted">Discount is only a preliminary calculation from entered asking price and estimated market value. It is not a valuation; comparables and source evidence require independent verification.</p>
+<div class="wrap"><table><thead><tr><th>Deal</th><th>Type</th><th>Price / discount</th><th>Source evidence</th><th>Property sourcing</th><th>Contract assignment</th></tr></thead><tbody>{body}</tbody></table></div>
+</body></html>"""
+
+
+def write_review_html(report: dict[str, Any], path: str | None = None) -> str:
+    destination = path or os.getenv("ATLAS_ROUTE_REVIEW_HTML_PATH", "property-route-review-queue.html")
+    with open(destination, "w", encoding="utf-8") as fh:
+        fh.write(render_review_html(report))
+    return destination

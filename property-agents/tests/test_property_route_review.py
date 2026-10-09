@@ -1,5 +1,5 @@
 import json, os, tempfile, unittest
-from property_route_review import build_review_queue, candidate_to_route_input, write_review_queue
+from property_route_review import build_review_queue, candidate_to_route_input, write_review_queue, render_review_html, write_review_html
 
 class PropertyRouteReviewTests(unittest.TestCase):
     def test_mapping_does_not_invent_valuation_or_comparables(self):
@@ -14,6 +14,22 @@ class PropertyRouteReviewTests(unittest.TestCase):
         self.assertEqual(record["routes"]["contract_assignment"]["status"],"HOLD_FOR_LEGAL_REVIEW")
         self.assertFalse(report["guardrails"]["writes_to_smartsheet"])
         self.assertFalse(record["automatic_contracting"])
+    def test_html_summary_escapes_untrusted_property_text(self):
+        report = build_review_queue([{"Lead ID":"<script>alert(1)</script>", "Area":"Croydon & Sutton"}], "SCAN-X")
+        page = render_review_html(report)
+        self.assertIn("&lt;script&gt;", page)
+        self.assertNotIn("<script>alert(1)</script>", page)
+        self.assertIn("NOT APPROVED TO TRANSACT", page)
+        self.assertIn("Contract assignment", page)
+
+    def test_html_file_is_written(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=os.path.join(tmp,"review.html")
+            write_review_html(build_review_queue([], "SCAN-HTML"),path)
+            with open(path,encoding="utf-8") as fh: page=fh.read()
+            self.assertIn("SCAN-HTML",page)
+            self.assertIn("No candidates in this run",page)
+
     def test_queue_file_is_valid_json_and_audit_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             path=os.path.join(tmp,"queue.json")

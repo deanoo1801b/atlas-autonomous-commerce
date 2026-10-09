@@ -104,6 +104,14 @@ jobs:
           path: property-route-review-queue.json
           if-no-files-found: ignore
 
+      - name: Upload contract route review HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: property-contract-route-review-html
+          path: property-route-review-queue.html
+          if-no-files-found: ignore
+
       - name: Upload scan audit report
         if: always()
         uses: actions/upload-artifact@v4
