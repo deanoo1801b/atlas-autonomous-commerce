@@ -41,7 +41,7 @@ def _prioritise_record(record: dict[str, Any]) -> dict[str, Any]:
     comps_status = record.get("valuation_status")
     score = 0
     reasons = []
-    if record.get("source_url", "").startswith("https://"):
+    if str(record.get("source_url") or "").startswith("https://"):
         score += 10
     else:
         reasons.append("No valid HTTPS source link")
