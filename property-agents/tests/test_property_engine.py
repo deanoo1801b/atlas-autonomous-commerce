@@ -1,10 +1,12 @@
 """Offline tests for the Inspiration Properties property engine."""
 import os
+import json
+import tempfile
 import unittest
 
 os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
 
-from engine import _identity_key, _listing_fields, _stale_band, finance_ready, compliance
+from engine import _identity_key, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
 
@@ -45,6 +47,36 @@ class AdapterTests(unittest.TestCase):
         self.assertGreaterEqual(motivation_score({"Lead Type": "Price Reduced"}), 0)
         self.assertLessEqual(motivation_score({"Lead Type": "Price Reduced"}), 100)
 
+
+class ScanAuditTests(unittest.TestCase):
+    def _read_report(self, status, error=None):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "scan.json")
+            old = os.environ.get("ATLAS_SCAN_REPORT_PATH")
+            os.environ["ATLAS_SCAN_REPORT_PATH"] = path
+            try:
+                _write_scan_report("SCAN-TEST", 12, 9, True, status, error=error)
+                with open(path, encoding="utf-8") as fh:
+                    return json.load(fh)
+            finally:
+                if old is None:
+                    os.environ.pop("ATLAS_SCAN_REPORT_PATH", None)
+                else:
+                    os.environ["ATLAS_SCAN_REPORT_PATH"] = old
+
+    def test_success_audit_contains_scan_counts(self):
+        report = self._read_report("SUCCESS")
+        self.assertEqual(report["scan_id"], "SCAN-TEST")
+        self.assertEqual(report["discovered_candidates"], 12)
+        self.assertEqual(report["open_market_candidates"], 9)
+        self.assertTrue(report["open_market_scan_complete"])
+        self.assertEqual(report["status"], "SUCCESS")
+        self.assertIsNone(report["error"])
+
+    def test_failed_audit_preserves_error(self):
+        report = self._read_report("FAILED", "RuntimeError: test failure")
+        self.assertEqual(report["status"], "FAILED")
+        self.assertEqual(report["error"], "RuntimeError: test failure")
 
 class ConfigurationTests(unittest.TestCase):
     def test_compliance_defaults_to_amber(self):
