@@ -4,7 +4,7 @@ import unittest
 
 os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
 
-from engine import _identity_key, _listing_fields, _stale_band, finance_ready
+from engine import _identity_key, _listing_fields, _stale_band, finance_ready, compliance
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
 
@@ -44,6 +44,18 @@ class AdapterTests(unittest.TestCase):
     def test_motivation_score_is_bounded(self):
         self.assertGreaterEqual(motivation_score({"Lead Type": "Price Reduced"}), 0)
         self.assertLessEqual(motivation_score({"Lead Type": "Price Reduced"}), 100)
+
+
+class ConfigurationTests(unittest.TestCase):
+    def test_compliance_defaults_to_amber(self):
+        self.assertEqual(compliance({"Contact Permission": "Unknown"}), "Amber")
+
+    def test_runtime_sheet_ids_are_not_hard_coded_in_engine(self):
+        with open(os.path.join(os.path.dirname(__file__), "..", "engine.py"), encoding="utf-8") as fh:
+            source = fh.read()
+        self.assertNotIn("95VHjPc74mJh2Q6485MHCqGjQP5p97wmW4x54Rg1", source)
+        self.assertNotIn("3007077934124932", source)
+        self.assertNotIn("890673877438340", source)
 
 
 class FinanceGateTests(unittest.TestCase):
