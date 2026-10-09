@@ -190,6 +190,36 @@ def _listing_fields(v, previous=None, relisting=False, relisting_confidence="Unk
         "Previous Source URL": previous_url,
     }
 
+def removal_updates(rows, cmap, seen_identities, scan_complete, scan_id):
+    """Return provisional removal row updates only after a complete scan."""
+    if not scan_complete:
+        return []
+    updates = []
+    for row in rows:
+        v = values(row, cmap)
+        if not norm(v.get("Source")).startswith("open-properties/"):
+            continue
+        if str(v.get("Listing Status") or "Unknown") not in {"Active", "Relisted", "Unknown"}:
+            continue
+        identity = _identity_key(v)
+        if identity and identity in seen_identities:
+            continue
+        misses = _miss_count(v) + 1
+        cells = []
+        if "Scan Miss Count" in cmap:
+            cells.append({"columnId": cmap["Scan Miss Count"], "value": misses})
+        if "Last Scan ID" in cmap:
+            cells.append({"columnId": cmap["Last Scan ID"], "value": scan_id})
+        if misses >= 2:
+            if "Listing Status" in cmap:
+                cells.append({"columnId": cmap["Listing Status"], "value": "Removed"})
+            if "Removal Evidence" in cmap:
+                cells.append({"columnId": cmap["Removal Evidence"], "value":
+                    "Not observed in two consecutive normalized open-market discovery scans; provisional removal only, not evidence of seller financial distress."})
+        if cells:
+            updates.append({"id": row["id"], "cells": cells})
+    return updates
+
 def _write_scan_report(scan_id, discovered_count, open_market_count, open_market_scan_complete, status, error=None):
     payload = {
         "scan_id": scan_id,
@@ -314,30 +344,7 @@ def run():
         # Conservative removal gate: only normalized open-market rows qualify,
         # and two consecutive misses are required before a provisional Removed status.
         seen_identities = {_identity_key(x) for x in discovered if _identity_key(x)}
-        miss_updates = []
-        for row in ps.get("rows", []):
-            v = values(row, pc)
-            if not norm(v.get("Source")).startswith("open-properties/"):
-                continue
-            if str(v.get("Listing Status") or "Unknown") not in {"Active", "Relisted", "Unknown"}:
-                continue
-            identity = _identity_key(v)
-            if identity and identity in seen_identities:
-                continue
-            misses = _miss_count(v) + 1
-            cells = []
-            if "Scan Miss Count" in pc:
-                cells.append({"columnId": pc["Scan Miss Count"], "value": misses})
-            if "Last Scan ID" in pc:
-                cells.append({"columnId": pc["Last Scan ID"], "value": scan_id})
-            if misses >= 2:
-                if "Listing Status" in pc:
-                    cells.append({"columnId": pc["Listing Status"], "value": "Removed"})
-                if "Removal Evidence" in pc:
-                    cells.append({"columnId": pc["Removal Evidence"], "value":
-                        "Not observed in two consecutive normalized open-market discovery scans; provisional removal only, not evidence of seller financial distress."})
-            if cells:
-                miss_updates.append({"id": row["id"], "cells": cells})
+        miss_updates = removal_updates(ps.get("rows", []), pc, seen_identities, open_market_scan_complete, scan_id)
         if open_market_scan_complete and miss_updates:
             property_updates.extend(miss_updates)
     
