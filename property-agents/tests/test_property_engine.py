@@ -9,6 +9,35 @@ os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
 from engine import _identity_key, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates, classify_relisting, _property_relisting_key
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
+from planning_opportunity_agent import analyse_planning_candidate, development_profit_scenario
+
+
+class PlanningOpportunityTests(unittest.TestCase):
+    def test_same_road_approved_extension_is_flagged_as_precedent(self):
+        result = analyse_planning_candidate(
+            {"Area": "12 Acacia Road, Croydon", "Postcode": "CR0 1AA"},
+            [{"entity": 123, "address": "18 Acacia Road, Croydon", "description": "Two storey rear extension to provide additional bedroom", "decision": "Granted", "reference": "PL/123"}],
+        )
+        self.assertEqual(result["Planning Review Status"], "Same-road precedent found - verify")
+        self.assertEqual(result["Planning Same-Road Count"], 1)
+        self.assertIn("not permission for this property", result["Planning Opportunity Summary"])
+
+    def test_unrelated_road_is_not_same_road_precedent(self):
+        result = analyse_planning_candidate(
+            {"Area": "12 Acacia Road, Croydon", "Postcode": "CR0 1AA"},
+            [{"entity": 123, "address": "18 Elm Avenue, Croydon", "description": "Loft conversion and dormer", "decision": "Granted"}],
+        )
+        self.assertEqual(result["Planning Review Status"], "No matching records returned")
+
+    def test_profit_scenario_requires_all_cost_inputs(self):
+        result = development_profit_scenario(200000, 300000, works_cost=30000)
+        self.assertIsNone(result["estimated_net_profit"])
+
+    def test_profit_scenario_costs_contingency_and_net_profit(self):
+        result = development_profit_scenario(200000, 300000, 30000, 5000, 6000, 10000, 5000, 10)
+        self.assertEqual(result["contingency"], 3000)
+        self.assertEqual(result["estimated_total_cost"], 259000)
+        self.assertEqual(result["estimated_net_profit_before_tax"], 41000)
 
 
 class BMVTests(unittest.TestCase):

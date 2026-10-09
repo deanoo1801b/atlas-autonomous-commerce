@@ -4,6 +4,7 @@ import requests
 from private_seller_agent import discover_private_sellers
 from open_properties_agent import discover_open_properties, to_property_lead, last_scan_complete
 from motivated_seller_agent import motivation_score, motivation_trend
+from planning_opportunity_agent import analyse_planning_candidate
 
 BASE = "https://api.smartsheet.com/2.0"
 TOKEN = os.getenv("SMARTSHEET_API_TOKEN", "").strip()
@@ -309,6 +310,33 @@ def run():
         open_market_scan_complete = last_scan_complete()
         scan_id = _scan_id()
         discovered.extend(to_property_lead(item) for item in open_market)
+        # Planning precedent is an enrichment signal only. Failures are recorded on
+        # the candidate and do not imply that no applications exist.
+        planning_processed = 0
+        for candidate in discovered:
+            if planning_processed >= int(os.getenv("ATLAS_PLANNING_MAX_PROPERTIES", "25")):
+                candidate.setdefault("Planning Review Status", "Deferred by per-run planning scan limit")
+                continue
+            try:
+                planning = analyse_planning_candidate(candidate)
+                candidate.update({k: v for k, v in planning.items() if k != "Planning Evidence"})
+                if planning.get("Planning Evidence"):
+                    notes = candidate.get("Notes")
+                    try:
+                        notes_obj = json.loads(notes) if isinstance(notes, str) else {}
+                        if not isinstance(notes_obj, dict): notes_obj = {}
+                    except (TypeError, json.JSONDecodeError):
+                        notes_obj = {"previous_notes": str(notes)[:1000]} if notes else {}
+                    notes_obj["planning_evidence"] = planning["Planning Evidence"]
+                    candidate["Notes"] = json.dumps(notes_obj, separators=(",", ":"))[:4000]
+                if planning.get("Planning Opportunity Summary"):
+                    existing_evidence = str(candidate.get("Opportunity Evidence") or "").strip()
+                    candidate["Opportunity Evidence"] = (existing_evidence + " Planning scan: " + planning["Planning Opportunity Summary"]).strip()[:4000]
+                planning_processed += 1
+            except Exception as planning_exc:
+                candidate["Planning Review Status"] = "Planning API error - council portal review required"
+                candidate["Planning Opportunity Summary"] = f"Planning scan failed ({type(planning_exc).__name__}); this is not evidence that no applications exist."
+                planning_processed += 1
         ps, fs = get_sheet(PROPERTY_SHEET), get_sheet(FINANCE_SHEET)
         pc, fc = cols(ps), cols(fs)
     
@@ -393,7 +421,8 @@ def run():
                     "Scan Miss Count", "Last Scan ID", "Removal Evidence", "Portal Listing ID", "Postcode",
                     "Original Asking Price", "Current Asking Price", "Reduction Amount",
                     "Reduction %", "Reduction Count", "Motivation Trend", "Evidence History",
-                    "Previous Source URL",
+                    "Previous Source URL", "Planning Review Status", "Planning Opportunity Summary",
+                    "Planning Precedent Count", "Planning Same-Road Count", "Planning Potentially Approved Count", "Planning Search URL",
                 }
                 cells = [{"columnId": pc[name], "value": value} for name, value in candidate.items()
                          if name in pc and name in discovery_fields and value is not None]
