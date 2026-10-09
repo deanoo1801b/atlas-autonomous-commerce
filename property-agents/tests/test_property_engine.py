@@ -48,6 +48,47 @@ class AdapterTests(unittest.TestCase):
         self.assertLessEqual(motivation_score({"Lead Type": "Price Reduced"}), 100)
 
 
+class IdentityTests(unittest.TestCase):
+    def test_canonical_url_removes_query_and_fragment(self):
+        a = {
+            "Lead ID": "LEGACY-1",
+            "Source": "private-source",
+            "Source URL": "https://example.test/property/1?utm_source=portal#details",
+        }
+        b = {
+            "Lead ID": "LEGACY-2",
+            "Source": "private-source",
+            "Source URL": "https://example.test/property/1",
+        }
+        self.assertEqual(_identity_key(a), _identity_key(b))
+
+    def test_open_market_identity_uses_provider_listing_id_over_url(self):
+        a = {
+            "Lead ID": "OP-abc123",
+            "Source": "open-properties/rightmove",
+            "Source URL": "https://example.test/property/old",
+        }
+        b = {
+            "Lead ID": "OP-abc123",
+            "Source": "open-properties/rightmove",
+            "Source URL": "https://example.test/property/new",
+        }
+        self.assertEqual(_identity_key(a), _identity_key(b))
+
+    def test_different_open_market_provider_ids_are_distinct(self):
+        a = {
+            "Lead ID": "OP-abc123",
+            "Source": "open-properties/rightmove",
+            "Source URL": "https://example.test/property/a",
+        }
+        b = {
+            "Lead ID": "OP-def456",
+            "Source": "open-properties/rightmove",
+            "Source URL": "https://example.test/property/a",
+        }
+        self.assertNotEqual(_identity_key(a), _identity_key(b))
+
+
 class RemovalGateTests(unittest.TestCase):
     def setUp(self):
         self.cmap = {
