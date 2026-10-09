@@ -180,7 +180,24 @@ def _listing_fields(v, previous=None, relisting=False, relisting_confidence="Unk
         "Previous Source URL": previous_url,
     }
 
-def _write_scan_report(scan_id, discovered_count, open_market_count, open_market_scan_complete, status, error=None):\n    payload = {\n        "scan_id": scan_id,\n        "timestamp_utc": datetime.now(timezone.utc).isoformat(),\n        "discovered_candidates": discovered_count,\n        "open_market_candidates": open_market_count,\n        "open_market_scan_complete": bool(open_market_scan_complete),\n        "status": status,\n        "error": error,\n    }\n    path = os.getenv("ATLAS_SCAN_REPORT_PATH", "property-agent-scan-report.json")\n    try:\n        with open(path, "w", encoding="utf-8") as fh:\n            json.dump(payload, fh, indent=2)\n    except OSError as exc:\n        print(f"Warning: unable to write scan report: {exc}")\n\ndef run():
+def _write_scan_report(scan_id, discovered_count, open_market_count, open_market_scan_complete, status, error=None):
+    payload = {
+        "scan_id": scan_id,
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "discovered_candidates": discovered_count,
+        "open_market_candidates": open_market_count,
+        "open_market_scan_complete": bool(open_market_scan_complete),
+        "status": status,
+        "error": error,
+    }
+    path = os.getenv("ATLAS_SCAN_REPORT_PATH", "property-agent-scan-report.json")
+    try:
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, indent=2)
+    except OSError as exc:
+        print(f"Warning: unable to write scan report: {exc}")
+
+def run():
     if DRY_RUN:
         print("Dry-run health check passed. No Smartsheet reads or writes performed.")
         return
