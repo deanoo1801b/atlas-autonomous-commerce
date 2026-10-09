@@ -115,8 +115,22 @@ def render_review_html(report: dict[str, Any]) -> str:
     def esc(value: Any) -> str:
         return html.escape("" if value is None else str(value), quote=True)
 
+    records = report.get("records", [])
+    bands = ("Review evidence first", "Needs evidence", "Incomplete record")
+    band_counts = {band: 0 for band in bands}
+    for record in records:
+        band = record.get("review_priority_band")
+        if band in band_counts:
+            band_counts[band] += 1
+        else:
+            band_counts["Incomplete record"] += 1
+    priority_summary = "".join(
+        f"<li><strong>{esc(band)}:</strong> {count}</li>"
+        for band, count in band_counts.items()
+    )
+
     rows = []
-    for record in report.get("records", []):
+    for record in records:
         route_cells = []
         for key, label in (("property_sourcing", "Sourcing"), ("contract_assignment", "Assignment")):
             route = record.get("routes", {}).get(key, {})
@@ -135,15 +149,22 @@ def render_review_html(report: dict[str, Any]) -> str:
         source_link = f'<a href="{esc(source)}" rel="noreferrer">{esc(source)}</a>' if isinstance(source, str) and source.startswith("https://") else "Missing/invalid source URL"
         discount = record.get("market_value_discount_pct")
         discount_text = f"{discount:.2f}%" if isinstance(discount, (int, float)) else "Not calculated"
+        reasons = record.get("priority_reasons", [])
+        reasons_html = "".join(f"<li>{esc(reason)}</li>" for reason in reasons)
+        priority_score = record.get("review_priority_score", 0)
+        priority_score_text = str(priority_score) if isinstance(priority_score, (int, float)) else "Not scored"
+        priority_band = record.get("review_priority_band") or "Incomplete record"
         rows.append(
             "<tr>"
+            f"<td><strong>{esc(priority_band)}</strong><br>Evidence score: {esc(priority_score_text)}"
+            f"<ul>{reasons_html or '<li>Priority reasons not recorded</li>'}</ul></td>"
             f"<td>{esc(record.get('deal_id'))}<br>{esc(record.get('area'))}</td>"
             f"<td>{esc(record.get('lead_type'))}<br>{esc(record.get('opportunity_type'))}</td>"
             f"<td>{esc(record.get('asking_price'))}<br>Discount: {esc(discount_text)}<br>{esc(record.get('valuation_status'))}</td>"
             f"<td>{source_link}</td>{''.join(route_cells)}"
             "</tr>"
         )
-    body = "".join(rows) or '<tr><td colspan="6">No candidates in this run. An empty queue is not evidence that no opportunities exist.</td></tr>'
+    body = "".join(rows) or '<tr><td colspan="7">No candidates in this run. An empty queue is not evidence that no opportunities exist.</td></tr>'
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Inspiration Properties — Contract Route Review</title>
@@ -153,12 +174,15 @@ body{{font:16px/1.5 system-ui,sans-serif;margin:1rem;color:#172033}}h1{{font-siz
 .wrap{{overflow-x:auto}}table{{border-collapse:collapse;width:100%;min-width:1100px}}th,td{{border:1px solid #ccd2dc;padding:.65rem;vertical-align:top;text-align:left}}th{{background:#eef2f7}}td p{{margin:.25rem 0}}small,.muted{{color:#475569}}details{{max-width:30rem}}li{{margin:.35rem 0}}
 </style></head><body>
 <h1>Inspiration Properties UK — Contract Route Review</h1>
-<p>Scan: <strong>{esc(report.get('scan_id'))}</strong> · Generated UTC: {esc(report.get('generated_at_utc'))} · Candidates: {len(report.get('records', []))}</p>
+<p>Scan: <strong>{esc(report.get('scan_id'))}</strong> · Generated UTC: {esc(report.get('generated_at_utc'))} · Candidates: {len(records)}</p>
+<section aria-label="Evidence review priority summary"><h2>Evidence review work order</h2>
+<ul>{priority_summary}</ul>
+<p class="muted">Higher scores mean more evidence fields are present for a human to verify. They do not indicate property quality, expected profit, permission to proceed or approval to transact.</p></section>
 <div class="notice"><strong>REVIEW ONLY — NOT APPROVED TO TRANSACT.</strong>
 No seller/buyer contact, offer, contract, payment, referral, publishing or Smartsheet write is performed by this report.
 All route outcomes require human review, applicable compliance checks and independent solicitor review. Missing information is not assumed safe.</div>
 <p class="muted">Discount is only a preliminary calculation from entered asking price and estimated market value. It is not a valuation; comparables and source evidence require independent verification.</p>
-<div class="wrap"><table><thead><tr><th>Deal</th><th>Type</th><th>Price / discount</th><th>Source evidence</th><th>Property sourcing</th><th>Contract assignment</th></tr></thead><tbody>{body}</tbody></table></div>
+<div class="wrap"><table><thead><tr><th>Evidence review priority</th><th>Deal</th><th>Type</th><th>Price / discount</th><th>Source evidence</th><th>Property sourcing</th><th>Contract assignment</th></tr></thead><tbody>{body}</tbody></table></div>
 </body></html>"""
 
 
