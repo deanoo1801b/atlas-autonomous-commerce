@@ -152,6 +152,15 @@ def _history(v):
     except (TypeError, json.JSONDecodeError):
         return []
 
+def _property_relisting_key(v):
+    """Conservative property-level key used only to connect removed/reappearing listings."""
+    address = norm(v.get("Area") or v.get("Address") or "")
+    postcode = norm(v.get("Postcode") or "")
+    if not address or not postcode:
+        return None
+    return f"{address}|{postcode}"
+
+
 def classify_relisting(previous, current):
     """Classify a reappearance without resetting the listing's historical identity."""
     previous = previous or {}
@@ -159,8 +168,13 @@ def classify_relisting(previous, current):
     previous_status = str(previous.get("Listing Status") or "Unknown")
     previous_identity = _identity_key(previous)
     current_identity = _identity_key(current)
-    same_identity = bool(previous_identity and current_identity and previous_identity == current_identity)
-    if not (same_identity and previous_status == "Removed"):
+    same_listing = bool(previous_identity and current_identity and previous_identity == current_identity)
+    same_property = bool(
+        _property_relisting_key(previous)
+        and _property_relisting_key(current)
+        and _property_relisting_key(previous) == _property_relisting_key(current)
+    )
+    if not (previous_status == "Removed" and (same_listing or same_property)):
         return False, "Unknown"
     previous_url = _canonical_url(previous.get("Source URL"))
     current_url = _canonical_url(current.get("Source URL"))
@@ -326,6 +340,20 @@ def run():
             )
             previous = values(existing_row, pc) if existing_row else None
             genuine_relist, relist_confidence = classify_relisting(previous, candidate) if existing_row else (False, "Unknown")
+            if not existing_row and candidate.get("Source", "").startswith("open-properties/"):
+                removed_matches = [
+                    values(row, pc) for row in ps.get("rows", [])
+                    if str(values(row, pc).get("Listing Status") or "") == "Removed"
+                    and _property_relisting_key(values(row, pc))
+                    and _property_relisting_key(values(row, pc)) == _property_relisting_key(candidate)
+                ]
+                if len(removed_matches) == 1:
+                    previous = removed_matches[0]
+                    genuine_relist, relist_confidence = classify_relisting(previous, candidate)
+                    existing_row = next(
+                        row for row in ps.get("rows", [])
+                        if values(row, pc) == previous
+                    )
             historical = _listing_fields(candidate, previous, genuine_relist, relist_confidence)
             candidate.update(historical)
             candidate["Motivation Trend"] = motivation_trend(_history(previous), m)
