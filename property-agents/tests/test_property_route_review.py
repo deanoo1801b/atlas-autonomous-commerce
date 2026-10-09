@@ -30,6 +30,12 @@ class PropertyRouteReviewTests(unittest.TestCase):
             self.assertIn("SCAN-HTML",page)
             self.assertIn("No candidates in this run",page)
 
+    def test_missing_source_url_is_scored_without_crashing(self):
+        record = build_review_queue([{"Lead ID":"IP-NO-SOURCE"}],"SCAN-NO-SOURCE")["records"][0]
+        self.assertEqual(record["review_priority_score"], 0)
+        self.assertEqual(record["review_priority_band"], "Incomplete record")
+        self.assertIn("No valid HTTPS source link", record["priority_reasons"])
+
     def test_priority_is_evidence_work_order_only(self):
         report = build_review_queue([{"Lead ID":"IP-P","Source URL":"https://example.test/p","Asking Price":140000,"Estimated Market Value":200000,"Comparable Sales Count":3,"Proposed Sourcing Fee":3000}],"SCAN-P")
         record = report["records"][0]
