@@ -35,6 +35,7 @@ class AdapterTests(unittest.TestCase):
         })
         self.assertEqual(lead["Portal Listing ID"], "rm-456")
         self.assertEqual(lead["Postcode"], "SW1A 1AA")
+        self.assertTrue(lead["Property Identity Key"].startswith("address:20 test road, london|postcode:sw1a 1aa"))
 
     def test_motivation_trend_detects_repeated_pressure(self):
         history = [{"motivation": 30, "price": 500000}, {"motivation": 45, "price": 475000}]
@@ -258,6 +259,12 @@ class HistoryTests(unittest.TestCase):
     def test_missing_postcode_does_not_create_soft_relist_match(self):
         previous = {"Lead ID":"OP-old","Source":"open-properties/rightmove","Listing Status":"Removed","Area":"10 Test Street"}
         current = {"Lead ID":"OP-new","Source":"open-properties/rightmove","Area":"10 Test Street"}
+        self.assertIsNone(_property_relisting_key(previous))
+        self.assertEqual(classify_relisting(previous, current), (False, "Unknown"))
+
+    def test_broad_area_does_not_create_property_relist_match(self):
+        previous = {"Lead ID":"OP-old","Source":"open-properties/rightmove","Listing Status":"Removed","Area":"Hampstead","Postcode":"NW3 1AA"}
+        current = {"Lead ID":"OP-new","Source":"open-properties/rightmove","Listing Status":"Active","Area":"Hampstead","Postcode":"NW3 1AA"}
         self.assertIsNone(_property_relisting_key(previous))
         self.assertEqual(classify_relisting(previous, current), (False, "Unknown"))
 
