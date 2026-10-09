@@ -370,19 +370,35 @@ def run():
         if not target:
             continue
 
+        compliance_status = compliance(v)
+        evidence_ready = bool(
+            v.get("Source URL") or v.get("Opportunity Evidence")
+        ) and _price(v.get("Asking Price")) is not None
+        listing_available = str(v.get("Listing Status") or "Unknown") not in {"Removed"}
+        finance_gate = compliance_status != "Red" and evidence_ready and listing_available
         note = (
-            "Automated qualification: route classified as " + rt +
-            ". Evidence/borrower facts remain subject to verification. "
-            "No personalised regulated finance advice, referral or outreach performed."
+            "Automated route classification: " + rt + ". "
+            + ("Minimum evidence gate passed; case remains subject to human verification."
+               if finance_gate else
+               "Minimum finance evidence gate NOT passed; case remains for evidence review.")
+            + " No personalised regulated finance advice, referral or outreach performed."
         )
         mapped = {
             "Lead Type": rt,
-            "Lead Score": score(v),
-            "Compliance Status": compliance(v),
-            "Best Route": "Potential " + rt,
-            "Opportunity Action": "Verify evidence, borrower/property facts, finance requirement and exit before referral",
-            "Finance Status": "Qualifying",
-            "Next Action": "Collect missing case facts; compliance gate before referral",
+            "Lead Score": score(v) if finance_gate else "Cold",
+            "Compliance Status": compliance_status,
+            "Best Route": "Potential " + rt if finance_gate else "Evidence Review Required",
+            "Opportunity Action": (
+                "Verify borrower/property facts, finance requirement and exit before referral"
+                if finance_gate else
+                "Obtain and verify minimum evidence before finance qualification"
+            ),
+            "Finance Status": "Qualifying" if finance_gate else "Review",
+            "Next Action": (
+                "Collect missing case facts; compliance gate before referral"
+                if finance_gate else
+                "Verify source evidence, asking price and listing status"
+            ),
             "Notes": note,
         }
         cells = [{"columnId": fc[name], "value": val} for name, val in mapped.items() if name in fc]
