@@ -6,7 +6,7 @@ import unittest
 
 os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
 
-from engine import _identity_key, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates
+from engine import _identity_key, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates, classify_relisting
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
 
@@ -233,6 +233,35 @@ class HistoryTests(unittest.TestCase):
             "Source URL": "https://example.test/property/abc123?foo=bar",
         }
         self.assertEqual(_identity_key(lead), "open-properties/rightmove:id:abc123")
+
+
+    def test_active_same_identity_is_not_relisted(self):
+        previous = {"Lead ID":"OP-abc123","Source":"open-properties/rightmove","Source URL":"https://example.test/property/abc123","Property Identity Key":"open-properties/rightmove:id:abc123","Listing Status":"Active"}
+        self.assertEqual(classify_relisting(previous, dict(previous)), (False, "Unknown"))
+
+    def test_removed_same_identity_same_url_is_medium_relist(self):
+        previous = {"Lead ID":"OP-abc123","Source":"open-properties/rightmove","Source URL":"https://example.test/property/abc123","Property Identity Key":"open-properties/rightmove:id:abc123","Listing Status":"Removed"}
+        self.assertEqual(classify_relisting(previous, dict(previous)), (True, "Medium"))
+
+    def test_removed_same_identity_changed_url_is_high_relist(self):
+        previous = {"Lead ID":"OP-abc123","Source":"open-properties/rightmove","Source URL":"https://example.test/property/old","Property Identity Key":"open-properties/rightmove:id:abc123","Listing Status":"Removed"}
+        current = dict(previous); current["Source URL"]="https://example.test/property/new"
+        self.assertEqual(classify_relisting(previous, current), (True, "High"))
+
+    def test_removed_different_identity_is_not_relisted(self):
+        previous = {"Lead ID":"OP-abc123","Source":"open-properties/rightmove","Source URL":"https://example.test/property/old","Property Identity Key":"open-properties/rightmove:id:abc123","Listing Status":"Removed"}
+        current = {"Lead ID":"OP-def456","Source":"open-properties/rightmove","Source URL":"https://example.test/property/new","Property Identity Key":"open-properties/rightmove:id:def456","Listing Status":"Active"}
+        self.assertEqual(classify_relisting(previous, current), (False, "Unknown"))
+
+    def test_relisting_preserves_original_history(self):
+        previous = {"Lead ID":"OP-abc123","Source":"open-properties/rightmove","Source URL":"https://example.test/property/old","Property Identity Key":"open-properties/rightmove:id:abc123","Listing Status":"Removed","First Seen":"2026-07-01","Original Asking Price":500000,"Current Asking Price":450000,"Reduction Count":2,"Evidence History":'[{"date":"2026-07-01","price":500000}]',"Motivation Score":60}
+        current = {"Lead ID":"OP-abc123","Source":"open-properties/rightmove","Source URL":"https://example.test/property/new","Property Identity Key":"open-properties/rightmove:id:abc123","Asking Price":445000,"Motivation Score":65}
+        result = _listing_fields(current, previous, *classify_relisting(previous, current))
+        self.assertEqual(result["Listing Status"], "Relisted")
+        self.assertEqual(result["First Seen"], "2026-07-01")
+        self.assertEqual(result["Original Asking Price"], 500000)
+        self.assertEqual(result["Reduction Count"], 3)
+        self.assertIn('"price":500000', result["Evidence History"])
 
     def test_relisting_is_flagged_for_same_identity_after_removed_status(self):
         previous = {
