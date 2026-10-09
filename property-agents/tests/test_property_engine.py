@@ -22,9 +22,26 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(lead["Lead Type"], "Open Market Listing")
         self.assertEqual(lead["Opportunity Type"], "Property Acquisition")
         self.assertEqual(lead["Contact Permission"], "Unknown")
-        self.assertIn("listing_date", lead["Notes"])\n\n    def test_open_properties_preserves_portal_id_and_postcode(self):\n        lead = to_property_lead({\n            "id": "rm-456", "portal": "rightmove",\n            "url": "https://example.test/property/rm-456",\n            "address": "20 Test Road, London", "postcode": "SW1A 1AA",\n            "price": 650000,\n        })\n        self.assertEqual(lead["Portal Listing ID"], "rm-456")\n        self.assertEqual(lead["Postcode"], "SW1A 1AA")
+        self.assertIn("listing_date", lead["Notes"])
 
-    def test_motivation_trend_detects_repeated_pressure(self):\n        history = [{"motivation": 30, "price": 500000}, {"motivation": 45, "price": 475000}]\n        self.assertGreater(motivation_trend(history, 60), 0)\n\n    def test_motivation_trend_is_zero_without_history(self):\n        self.assertEqual(motivation_trend([], 60), 0)\n\n    def test_motivation_score_is_bounded(self):
+    def test_open_properties_preserves_portal_id_and_postcode(self):
+        lead = to_property_lead({
+            "id": "rm-456", "portal": "rightmove",
+            "url": "https://example.test/property/rm-456",
+            "address": "20 Test Road, London", "postcode": "SW1A 1AA",
+            "price": 650000,
+        })
+        self.assertEqual(lead["Portal Listing ID"], "rm-456")
+        self.assertEqual(lead["Postcode"], "SW1A 1AA")
+
+    def test_motivation_trend_detects_repeated_pressure(self):
+        history = [{"motivation": 30, "price": 500000}, {"motivation": 45, "price": 475000}]
+        self.assertGreater(motivation_trend(history, 60), 0)
+
+    def test_motivation_trend_is_zero_without_history(self):
+        self.assertEqual(motivation_trend([], 60), 0)
+
+    def test_motivation_score_is_bounded(self):
         self.assertGreaterEqual(motivation_score({"Lead Type": "Price Reduced"}), 0)
         self.assertLessEqual(motivation_score({"Lead Type": "Price Reduced"}), 100)
 
@@ -74,7 +91,25 @@ class HistoryTests(unittest.TestCase):
         self.assertTrue(result["Relisting Flag"])
         self.assertEqual(result["Relisting Confidence"], "High")
 
-    def test_reappearing_removed_listing_is_relisted_with_medium_confidence(self):\n        previous = {\n            "First Seen": "2026-07-01", "Original Asking Price": 500000,\n            "Current Asking Price": 450000, "Reduction Count": 2,\n            "Evidence History": "[]", "Motivation Score": 60,\n            "Listing Status": "Removed",\n            "Source URL": "https://example.test/property/abc123",\n            "Lead ID": "OP-abc123", "Source": "open-properties/rightmove",\n            "Property Identity Key": "open-properties/rightmove:id:abc123",\n        }\n        current = {\n            "Lead ID": "OP-abc123", "Source": "open-properties/rightmove",\n            "Source URL": "https://example.test/property/abc123",\n            "Asking Price": 445000, "Motivation Score": 65,\n            "Property Identity Key": "open-properties/rightmove:id:abc123",\n        }\n        self.assertEqual(_listing_fields(current, previous, relisting=True, relisting_confidence="Medium")["Listing Status"], "Relisted")\n\n    def test_price_reduction_history_accumulates(self):
+    def test_reappearing_removed_listing_is_relisted_with_medium_confidence(self):
+        previous = {
+            "First Seen": "2026-07-01", "Original Asking Price": 500000,
+            "Current Asking Price": 450000, "Reduction Count": 2,
+            "Evidence History": "[]", "Motivation Score": 60,
+            "Listing Status": "Removed",
+            "Source URL": "https://example.test/property/abc123",
+            "Lead ID": "OP-abc123", "Source": "open-properties/rightmove",
+            "Property Identity Key": "open-properties/rightmove:id:abc123",
+        }
+        current = {
+            "Lead ID": "OP-abc123", "Source": "open-properties/rightmove",
+            "Source URL": "https://example.test/property/abc123",
+            "Asking Price": 445000, "Motivation Score": 65,
+            "Property Identity Key": "open-properties/rightmove:id:abc123",
+        }
+        self.assertEqual(_listing_fields(current, previous, relisting=True, relisting_confidence="Medium")["Listing Status"], "Relisted")
+
+    def test_price_reduction_history_accumulates(self):
         previous = {
             "First Seen": "2026-07-01",
             "Original Asking Price": 500000,
