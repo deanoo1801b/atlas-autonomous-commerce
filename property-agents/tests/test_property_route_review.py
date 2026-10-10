@@ -6,6 +6,29 @@ class PropertyRouteReviewTests(unittest.TestCase):
         mapped = candidate_to_route_input({"Lead ID":"IP-1","Asking Price":140000})
         self.assertIsNone(mapped["estimated_market_value"])
         self.assertEqual(mapped["comparable_sales_count"], 0)
+    def test_agent_listings_are_market_intelligence_not_direct_owner_leads(self):
+        report = build_review_queue([{
+            "Lead ID": "OP-123", "Lead Type": "Open Market Listing",
+            "Source": "open-properties/rightmove", "Source URL": "https://example.test/listing"
+        }], "SCAN-CHANNEL")
+        record = report["records"][0]
+        self.assertEqual(record["lead_channel"], "AGENT_LISTING_MARKET_INTELLIGENCE_ONLY")
+        self.assertIn("not a direct-owner lead", record["lead_channel_reason"])
+
+    def test_direct_owner_claim_is_not_treated_as_verified(self):
+        report = build_review_queue([{
+            "Lead ID": "IP-OWNER", "Lead Type": "Direct Owner", "Owner Direct": True
+        }], "SCAN-OWNER")
+        record = report["records"][0]
+        self.assertEqual(record["lead_channel"], "DIRECT_OWNER_CLAIM_REQUIRES_VERIFICATION")
+        self.assertIn("ownership", record["lead_channel_reason"])
+        page = render_review_html(report)
+        self.assertIn("DIRECT_OWNER_CLAIM_REQUIRES_VERIFICATION", page)
+
+    def test_unknown_source_channel_is_not_assumed_direct_owner(self):
+        record = build_review_queue([{"Lead ID": "IP-UNKNOWN"}], "SCAN-UNKNOWN")["records"][0]
+        self.assertEqual(record["lead_channel"], "UNVERIFIED_CHANNEL_REQUIRES_REVIEW")
+
     def test_queue_keeps_both_routes_on_hold_by_default(self):
         report = build_review_queue([{"Lead ID":"IP-2","Area":"Croydon","Asking Price":140000,"Source URL":"https://example.test/listing"}],"SCAN-1")
         record = report["records"][0]
