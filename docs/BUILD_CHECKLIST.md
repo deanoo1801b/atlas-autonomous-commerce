@@ -32,12 +32,13 @@
 ## Phase 3 — Shopify
 - [ ] Connect Shopify API
 - [x] Define read-only Shopify adapter contract
-- [ ] Read products
+- [x] Read product catalogue via connected Shopify integration (363 products reported; standalone runtime connection still pending)
 - [ ] Read inventory
-- [ ] Read orders/analytics
+- [x] Read sales analytics via connected Shopify integration (initial 31-day snapshot; standalone runtime connection still pending)
 - [ ] Read product performance
-- [ ] Test Shopify data retrieval
-- [ ] Analyse catalogue
+- [x] Test read-only retrieval through connected Shopify integration
+- [ ] Test authenticated data retrieval from standalone ATLAS runtime
+- [ ] Analyse catalogue (initial baseline recorded; full product/fulfilment audit pending)
 - [x] Define Opportunity Report model
 - [ ] Generate first live Profit Opportunity Report
 - [ ] Enable controlled product creation
@@ -157,3 +158,14 @@ All specialist outputs feed the central Opportunity Report and ATLAS Decision Ga
 - [ ] Connect live Shopify data into scanner
 - [ ] Connect live Metricool data into scanner
 - [ ] Add authenticated scheduled execution
+
+
+## Phase 1E — First Live Read-Only Baseline
+- [x] Verify connected Shopify shop context
+- [x] Retrieve recent product sample and total catalogue count
+- [x] Query last 31 days of sales analytics
+- [x] Save baseline report to docs/reports/2026-10-10-shopify-baseline.md
+- [ ] Independently verify order count and analytics consistency
+- [ ] Inspect sessions, cart, checkout and conversion data
+- [ ] Audit inventory/fulfilment semantics before flagging zero-stock items
+- [ ] Generate ranked Opportunity Report with verified evidence
