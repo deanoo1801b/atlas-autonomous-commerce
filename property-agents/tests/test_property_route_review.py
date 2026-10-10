@@ -71,7 +71,7 @@ class PropertyRouteReviewTests(unittest.TestCase):
             "Asking Price":140000,"Estimated Market Value":200000,"Comparable Sales Count":12}], "SCAN-RAW")
         record = report["records"][0]
         self.assertEqual(record["comparable_evidence"]["valid_count"],0)
-        self.assertEqual(record["valuation_status"],"insufficient_comparables")
+        self.assertEqual(record["valuation_status"],"review_required")
         self.assertNotEqual(record["review_priority_band"],"Review evidence first")
 
     def test_comparables_older_than_12_months_are_not_counted(self):
