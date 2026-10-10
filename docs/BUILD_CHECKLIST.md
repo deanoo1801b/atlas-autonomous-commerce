@@ -210,6 +210,9 @@ All specialist outputs feed the central Opportunity Report and ATLAS Decision Ga
 - [x] Inspect installed Shopify fulfilment services and locations (Manual UK fulfilment and Gelato)
 - [x] Compare inventory levels for three unavailable products (levels returned only at Manual UK location)
 - [x] Confirm sampled unavailable product variants have zero available stock at the Manual location
-- [ ] Verify whether each affected product is actually connected to Gelato or another supplier
+- [x] Verify Gelato app installation and reconcile the service/location records: Gelato service is reported active, but the general locations connection returns only the Manual UK location; discrepancy recorded for follow-up
+- [x] Confirm sampled affected products have no product/variant metafields in the queried first 30 records and have zero tracked stock at the Manual UK location; product-level Gelato linkage remains unverified
+- [ ] Verify the exact products/SKUs inside Gelato or the actual supplier app before changing inventory or fulfilment settings
+- [ ] Resolve the discrepancy between the Gelato fulfillment-service location and the general locations connection
 - [ ] Correct supplier app mapping/location and inventory synchronization based on verified supplier behaviour
 - [ ] Retest availableForSale and customer add-to-cart after correction
