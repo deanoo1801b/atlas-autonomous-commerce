@@ -200,7 +200,7 @@ All specialist outputs feed the central Opportunity Report and ATLAS Decision Ga
 - [x] Inspect publication and variant availability for 10 recently updated active products
 - [x] Identify 5/10 sampled active products with tracked inventory 0, inventory policy DENY, and availableForSale false
 - [x] Check abandoned-checkout count (exactly 0) and note mismatch with one analytics checkout-start session
-- [ ] Identify supplier/fulfilment source and correct location for each unavailable product
+- [ ] Identify supplier/fulfilment source and correct location for each unavailable product (three inspected products show zero available/on-hand/committed at UK Online Fulfilment)
 - [ ] Sync real supplier inventory or apply verified made-to-order/POD inventory configuration
 - [ ] Recheck variant availability after supplier configuration
 - [ ] Test add-to-cart and checkout using a non-charged payment test
