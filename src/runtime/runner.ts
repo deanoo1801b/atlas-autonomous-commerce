@@ -3,8 +3,16 @@ import { recordAudit } from "./audit-log.js";
 import { agentRegistry } from "./registry.js";
 import type { AgentStatusRecord, RuntimeMode } from "./types.js";
 import { runScheduledScanner } from "./schedule.js";
+import { loadConfig } from "../config.js";
 
-const mode: RuntimeMode = "DRY_RUN";
+function resolveRuntimeMode(): RuntimeMode {
+  const config = loadConfig();
+  // Until an approved action handler exists, this runtime must never claim to execute.
+  if (config.dryRun || config.mode === "observe" || config.mode === "recommend") return "DRY_RUN";
+  return "APPROVAL_REQUIRED";
+}
+
+const mode: RuntimeMode = resolveRuntimeMode();
 
 const socialPipeline = [
   "trend-research",
@@ -70,7 +78,7 @@ export async function runCycle(): Promise<void> {
   });
 
   const statuses = await runHealthCheck();
-  await runScheduledScanner({ intervalMinutes: 60, enabled: true });
+  await runScheduledScanner({ intervalMinutes: 60, enabled: true, mode });
 
   await recordAudit({
     event_id: randomUUID(),
