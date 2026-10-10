@@ -218,3 +218,17 @@ All specialist outputs feed the central Opportunity Report and ATLAS Decision Ga
 - [ ] Resolve the discrepancy between the Gelato fulfillment-service location and the general locations connection
 - [ ] Correct supplier app mapping/location and inventory synchronization based on verified supplier behaviour
 - [ ] Retest availableForSale and customer add-to-cart after correction
+
+## Phase 1J — Checkout Conversion Settings (10 October 2026)
+Scope: review the five checkout recommendations from the supplied reference for Atlas Goods Store. This is a verification-and-fix checklist, not proof that settings are enabled. No live settings have been changed.
+
+- [ ] Verify checkout layout; Shopify says one-page checkout is the default, so change only if the live configuration differs
+- [ ] Review accelerated checkout methods and enabled payment wallets; verify on storefront and product page before considering complete
+- [ ] Review address collection preferences; address autocomplete and address validation are different features
+- [ ] Check whether guest checkout is allowed and whether customer sign-in is required
+- [ ] Review Shopify Messaging abandoned-checkout automation and its eligibility/trigger settings
+- [ ] Prioritise supplier/location mapping and unavailable product variants before checkout optimisation; do not enable overselling or invent stock
+- [ ] Verify shipping rates and payment methods with a safe, non-charged test order before declaring checkout healthy
+- [ ] Record screenshots/evidence and final state of each setting
+- [ ] Address-validation caveat: Shopify's documented pre-checkout address validation country list does not include the United Kingdom; confirm current availability in this store before expecting it to validate UK addresses
+
