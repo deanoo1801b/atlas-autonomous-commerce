@@ -188,8 +188,19 @@ All specialist outputs feed the central Opportunity Report and ATLAS Decision Ga
 - [x] Segment 31-day sessions by country (US 138; UK 4; validate before assuming target-market performance)
 - [x] Query social-referrer sessions (2 total: Facebook 1, Instagram 1)
 - [x] Record zero-inventory caveat for supplier/POD fulfilment; no stock changes made
-- [ ] Confirm analytics shop domain maps to intended live store
-- [ ] Verify product publication to Online Store channel and supplier/POD inventory tracking
-- [ ] Complete customer-journey test for product page, cart, shipping and checkout
+- [x] Confirm analytics shop domain maps to intended live store (primary domain atlasgoodsstore.co.uk maps to gjb4b5-nz.myshopify.com)
+- [x] Verify sample of 10 active products is published to Online Store; [ ] resolve 5/10 sampled products unavailable due tracked zero inventory and DENY policy
+- [ ] Complete customer-journey test for product page, cart, shipping and checkout (storefront could not be inspected through web tool)
 - [ ] Validate analytics events and traffic quality before choosing growth experiments
-- [ ] Build ranked opportunity report after domain, checkout and fulfilment checks
+- [ ] Build ranked opportunity report after checkout and fulfilment checks
+
+
+## Phase 1H — Inventory Availability Root-Cause Check (10 October 2026)
+- [x] Verify canonical Shopify primary domain through Admin API
+- [x] Inspect publication and variant availability for 10 recently updated active products
+- [x] Identify 5/10 sampled active products with tracked inventory 0, inventory policy DENY, and availableForSale false
+- [x] Check abandoned-checkout count (exactly 0) and note mismatch with one analytics checkout-start session
+- [ ] Identify supplier/fulfilment source and correct location for each unavailable product
+- [ ] Sync real supplier inventory or apply verified made-to-order/POD inventory configuration
+- [ ] Recheck variant availability after supplier configuration
+- [ ] Test add-to-cart and checkout using a non-charged payment test
