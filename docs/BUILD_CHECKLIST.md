@@ -190,7 +190,7 @@ All specialist outputs feed the central Opportunity Report and ATLAS Decision Ga
 - [x] Record zero-inventory caveat for supplier/POD fulfilment; no stock changes made
 - [x] Confirm analytics shop domain maps to intended live store (primary domain atlasgoodsstore.co.uk maps to gjb4b5-nz.myshopify.com)
 - [x] Verify sample of 10 active products is published to Online Store; [ ] resolve 5/10 sampled products unavailable due tracked zero inventory and DENY policy
-- [ ] Complete customer-journey test for product page, cart, shipping and checkout (storefront could not be inspected through web tool)
+- [ ] Complete customer-journey test for product page, cart, shipping and checkout (Admin API product URLs retrieved; web inspection tool could not access them, so storefront health remains unverified)
 - [ ] Validate analytics events and traffic quality before choosing growth experiments
 - [ ] Build ranked opportunity report after checkout and fulfilment checks
 
