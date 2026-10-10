@@ -6,7 +6,7 @@ import unittest
 
 os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
 
-from engine import _identity_key, _canonical_url, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates, classify_relisting, _property_relisting_key, geography_status
+from engine import _identity_key, _canonical_url, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates, classify_relisting, _property_relisting_key, geography_status, apply_geography_gate
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
 from planning_opportunity_agent import analyse_planning_candidate, development_profit_scenario
@@ -24,6 +24,19 @@ class GeographyTests(unittest.TestCase):
 
     def test_missing_geography_requires_review(self):
         self.assertEqual(geography_status({"Area": "Unknown"}), "Needs location verification")
+
+    def test_missing_geography_cannot_become_hot_or_warm(self):
+        candidate = {"Area": "Unknown", "Opportunity Evidence": "Public listing"}
+        apply_geography_gate(candidate, 95)
+        self.assertEqual(candidate["Geography Review Status"], "Needs location verification")
+        self.assertEqual(candidate["Lead Score"], "Cold")
+        self.assertIn("do not shortlist", candidate["Opportunity Evidence"])
+
+    def test_verified_geography_preserves_motivation_score_band(self):
+        candidate = {"Postcode": "CR0 1AA", "Opportunity Evidence": "Public listing"}
+        apply_geography_gate(candidate, 75)
+        self.assertEqual(candidate["Geography Review Status"], "In designated area")
+        self.assertEqual(candidate["Lead Score"], "Hot")
 
 
 class PlanningOpportunityTests(unittest.TestCase):
