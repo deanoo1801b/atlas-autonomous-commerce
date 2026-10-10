@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import tempfile
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 _LAST_SCAN_COMPLETE = True
 
@@ -55,6 +56,26 @@ def _run(location: str) -> tuple[list[dict[str, Any]], bool]:
     properties = payload.get("properties", [])
     return (properties, True) if isinstance(properties, list) else ([], False)
 
+def _canonical_source_url(value: Any) -> str | None:
+    """Normalize listing URLs without query/fragment tracking noise."""
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        parts = urlsplit(raw)
+        if parts.scheme.lower() not in {"http", "https"} or not parts.hostname:
+            return None
+        host = parts.hostname.lower()
+        if parts.port:
+            host = host + ":" + str(parts.port)
+        path = "/" + "/".join(segment for segment in parts.path.split("/") if segment)
+        if path != "/":
+            path = path.rstrip("/")
+        return urlunsplit((parts.scheme.lower(), host, path, "", ""))
+    except (ValueError, TypeError):
+        return None
+
+
 def discover_open_properties() -> list[dict[str, Any]]:
     global _LAST_SCAN_COMPLETE
     _LAST_SCAN_COMPLETE = True
@@ -62,18 +83,30 @@ def discover_open_properties() -> list[dict[str, Any]]:
         _LAST_SCAN_COMPLETE = False
         return []
     out: list[dict[str, Any]] = []
-    seen: set[str] = set()
+    seen_keys: set[str] = set()
     for location in _locations():
         items, success = _run(location)
         if not success:
             _LAST_SCAN_COMPLETE = False
         for item in items:
-            url = str(item.get("url") or "").strip()
-            key = str(item.get("id") or url).strip().lower()
-            if not key or key in seen:
+            provider = str(item.get("portal") or "open-properties").strip().lower()
+            listing_id = str(item.get("id") or "").strip().lower()
+            canonical_url = _canonical_source_url(item.get("url"))
+            identity = _property_identity_key(item)
+            keys = set()
+            if listing_id:
+                keys.add("listing:" + provider + ":" + listing_id)
+            if canonical_url:
+                keys.add("url:" + canonical_url)
+            if identity:
+                keys.add(identity)
+            # Never merge on area/postcode alone. If no stable identifier exists,
+            # retain the record for manual review rather than silently discarding it.
+            if keys and keys.intersection(seen_keys):
                 continue
-            seen.add(key)
+            seen_keys.update(keys)
             item["_search_location"] = location
+            item["_canonical_source_url"] = canonical_url
             out.append(item)
     return out
 
