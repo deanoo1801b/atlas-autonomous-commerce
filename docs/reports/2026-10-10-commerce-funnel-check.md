@@ -50,3 +50,20 @@ No products, prices, inventory, orders, settings, marketing budgets, or publishi
 3. Confirm each affected variant returns `availableForSale: true` after the correct supplier/inventory configuration and test adding it to cart.
 4. Place a non-charged test order using Shopify's payment test mode only after the payment provider setup is understood. Test mode prevents live credit-card orders while active, so deactivate it after testing.
 5. Investigate why session analytics records one checkout-start session while the Admin API has no abandoned checkout records. Do not treat this mismatch alone as proof of a broken checkout.
+
+
+## Follow-up verification — fulfilment-service reconciliation (10 October 2026)
+
+A further read-only GraphQL check confirmed the Gelato app is installed in Shopify as **Gelato: Print on Demand**. The shop's `fulfillmentServices` field reports both Manual (location `Atlas Goods Store - UK Online Fulfilment`) and third-party Gelato (location `gelato`), each marked active. However, the general `locations(first: 20, includeInactive: true)` connection returned only the Manual UK location. This discrepancy between the fulfilment-service relation and the general locations connection needs to be resolved before changing inventory or location assignments.
+
+The three inspected products (vehicle mug, lion graphic T-shirt, and hot-pink hoodie) have no product-level or variant-level metafields in the queried first 30 records; their vendor is `Atlas Goods Store`. Their variants are tracked, have `inventoryPolicy: DENY`, `sellableOnlineQuantity: 0`, and `availableForSale: false`. The inventory levels returned for those variants point only to the Manual UK location, with zero available/on-hand/committed. This still does not prove whether the products are linked to Gelato inside Gelato's own catalogue.
+
+Installed apps observed through Shopify Admin API include Gelato: Print on Demand, Order Desk, TikTok Shop, Google Analytics, digital downloads, and marketplace integrations. App installation alone is not proof of product-level supplier mapping.
+
+### Next safe checks
+1. Open the Gelato app and verify whether these exact products/SKUs exist in its connected store and whether they were created or imported through Gelato. Gelato's own help documentation says products can be created in Gelato and added to Shopify, or existing Shopify products can be moved into Gelato.
+2. Reconcile the active Gelato service location with Shopify's general location listing and confirm whether the product variants are stocked/assigned to it.
+3. If products are not Gelato-managed, identify the real supplier (for example GoDropship or another source) before altering tracking, inventory, vendor, or fulfilment settings.
+4. Only after supplier truth is established, correct the integration and test availability/cart with no real payment.
+
+No store data or settings were changed during this check.
