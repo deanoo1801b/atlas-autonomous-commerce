@@ -147,6 +147,8 @@ All specialist outputs feed the central Opportunity Report and ATLAS Decision Ga
 - [x] Add approval queue persistence
 - [x] Define approval request model
 - [x] Add experiment/result persistence
+- [x] Align runtime audit mode with ATLAS_DRY_RUN / observe / recommend configuration; non-dry-run modes remain approval-required until executable handlers exist
+- [ ] Run TypeScript check and runtime smoke test after mode-alignment change
 
 
 ## Phase 1D — Social Intelligence Runtime
