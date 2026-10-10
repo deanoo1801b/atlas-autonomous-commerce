@@ -23,3 +23,8 @@ The runtime writes JSON Lines audit records to `data/audit.jsonl` by default. Se
 ## Shopify integration status
 
 The Shopify adapter is currently an interface/stub. Live Shopify reads are available through the connected ChatGPT Shopify integration for manual analysis, but the standalone repository runtime is not yet authenticated to Shopify. A read-only Shopify Admin API credential and an approved secure secret store are required before direct runtime integration.
+
+
+## Runtime mode reporting
+
+The runtime now derives its audit mode from `ATLAS_DRY_RUN` and `ATLAS_MODE`. `observe`, `recommend`, or dry-run configuration records `DRY_RUN`; other configured modes record `APPROVAL_REQUIRED`. The runner intentionally does not report `EXECUTE` because no approved external action handlers are registered yet. The scanner receives the resolved mode so its audit record agrees with the runtime. TypeScript/build and runtime smoke tests still need to be run in a Node.js 20+ environment.
