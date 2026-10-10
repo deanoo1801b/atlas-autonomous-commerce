@@ -180,3 +180,16 @@ All specialist outputs feed the central Opportunity Report and ATLAS Decision Ga
 - [ ] Validate product availability and fulfilment assumptions
 - [ ] Validate analytics event tracking
 - [ ] Produce ranked conversion and traffic opportunity recommendations
+
+
+## Phase 1G — Traffic Quality & Catalogue Status Baseline (10 October 2026)
+- [x] Query active/draft catalogue counts (353 active, 10 draft; 363 total)
+- [x] Segment 31-day sessions by device (142 desktop, 57 mobile, 2 other)
+- [x] Segment 31-day sessions by country (US 138; UK 4; validate before assuming target-market performance)
+- [x] Query social-referrer sessions (2 total: Facebook 1, Instagram 1)
+- [x] Record zero-inventory caveat for supplier/POD fulfilment; no stock changes made
+- [ ] Confirm analytics shop domain maps to intended live store
+- [ ] Verify product publication to Online Store channel and supplier/POD inventory tracking
+- [ ] Complete customer-journey test for product page, cart, shipping and checkout
+- [ ] Validate analytics events and traffic quality before choosing growth experiments
+- [ ] Build ranked opportunity report after domain, checkout and fulfilment checks
