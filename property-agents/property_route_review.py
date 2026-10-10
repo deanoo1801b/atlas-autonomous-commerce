@@ -3,6 +3,7 @@ from __future__ import annotations
 import html, json, os
 from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import urlsplit
 from contract_route_comparator import compare_routes
 
 def _comparable_sales_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
@@ -17,6 +18,7 @@ def _comparable_sales_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
         raw = []
     today = datetime.now(timezone.utc).date()
     valid = []
+    seen_comparables = set()
     reasons = []
     for index, item in enumerate(raw, start=1):
         if not isinstance(item, dict):
@@ -33,19 +35,30 @@ def _comparable_sales_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
         except ValueError:
             pass
         url = str(item.get("source_url") or "").strip()
-        postcode = str(item.get("postcode") or "").strip()
-        property_type = str(item.get("property_type") or "").strip()
+        postcode = " ".join(str(item.get("postcode") or "").upper().split())
+        property_type = " ".join(str(item.get("property_type") or "").lower().split())
         missing = []
+        try:
+            parsed_url = urlsplit(url)
+            valid_https_url = parsed_url.scheme.lower() == "https" and bool(parsed_url.hostname)
+        except ValueError:
+            valid_https_url = False
         if price <= 0: missing.append("valid sold price")
         if sale_date is None: missing.append("sale date")
         elif sale_date > today: missing.append("non-future sale date")
         elif (today - sale_date).days > 365: missing.append("sale within 12 months")
-        if not url.startswith("https://"): missing.append("HTTPS evidence URL")
+        if not valid_https_url: missing.append("HTTPS evidence URL")
         if not postcode: missing.append("postcode")
         if not property_type: missing.append("property type")
         if missing:
             reasons.append(f"Comparable {index}: missing/invalid " + ", ".join(missing))
         else:
+            # Repeated rows or copied URLs must not inflate the minimum of three sales.
+            identity = (url.lower().rstrip("/"), postcode, sale_date.isoformat(), round(price, 2), property_type)
+            if identity in seen_comparables:
+                reasons.append(f"Comparable {index}: duplicate evidence record; not counted twice")
+                continue
+            seen_comparables.add(identity)
             valid.append({"sold_price": price, "sale_date": sale_date.isoformat(), "source_url": url,
                           "postcode": postcode, "property_type": property_type})
     if len(valid) < 3:
