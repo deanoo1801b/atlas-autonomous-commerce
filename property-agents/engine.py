@@ -142,6 +142,21 @@ def geography_status(candidate):
         return "In designated area"
     return "Needs location verification"
 
+
+def apply_geography_gate(candidate, motivation):
+    """Score a lead while preserving the location-verification hard stop."""
+    status = geography_status(candidate)
+    candidate["Geography Review Status"] = status
+    candidate["Motivation Score"] = motivation
+    candidate["Lead Score"] = "Hot" if motivation >= 70 else ("Warm" if motivation >= 45 else "Cold")
+    if status == "Needs location verification":
+        candidate["Lead Score"] = "Cold"
+        candidate["Opportunity Evidence"] = (
+            str(candidate.get("Opportunity Evidence") or "")
+            + " Geography not verified; do not shortlist until location is confirmed."
+        ).strip()
+    return candidate
+
 def _stale_band(days):
     if days is None:
         return "Unknown"
@@ -447,13 +462,8 @@ def run():
         property_updates = []
         discovered = [candidate for candidate in discovered if geography_status(candidate) != "Outside designated area"]
         for candidate in discovered:
-            candidate["Geography Review Status"] = geography_status(candidate)
-            if candidate["Geography Review Status"] == "Needs location verification":
-                candidate["Lead Score"] = "Cold"
-                candidate["Opportunity Evidence"] = (str(candidate.get("Opportunity Evidence") or "") + " Geography not verified; do not shortlist until location is confirmed.").strip()
             m = motivation_score(candidate)
-            candidate["Motivation Score"] = m
-            candidate["Lead Score"] = "Hot" if m >= 70 else ("Warm" if m >= 45 else "Cold")
+            apply_geography_gate(candidate, m)
             candidate["Last Scan ID"] = scan_id
             candidate["Scan Miss Count"] = 0
             existing_row = (
