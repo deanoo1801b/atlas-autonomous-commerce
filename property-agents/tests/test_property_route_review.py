@@ -100,6 +100,24 @@ class PropertyRouteReviewTests(unittest.TestCase):
         self.assertEqual(record["valuation_status"], "review_required")
         self.assertTrue(any("duplicate evidence record" in reason for reason in record["comparable_evidence"]["reasons"]))
 
+
+    def test_same_source_url_cannot_count_twice_when_fields_change(self):
+        from datetime import datetime, timezone, timedelta
+        sold = (datetime.now(timezone.utc).date() - timedelta(days=30)).isoformat()
+        comps = [
+            {"sold_price": 185000, "sale_date": sold, "source_url": "https://example.test/sold/1",
+             "postcode": "CR0 1AA", "property_type": "terraced"},
+            {"sold_price": 195000, "sale_date": sold, "source_url": "https://example.test/sold/1/",
+             "postcode": "CR0 1AA", "property_type": "terraced"},
+            {"sold_price": 205000, "sale_date": sold, "source_url": "https://example.test/sold/3",
+             "postcode": "CR0 1AA", "property_type": "terraced"},
+        ]
+        record = build_review_queue([{"Lead ID":"IP-COPIED-URL", "Asking Price":140000,
+            "Estimated Market Value":200000, "Comparable Sales Evidence":comps}], "SCAN-COPIED-URL")["records"][0]
+        self.assertEqual(record["comparable_evidence"]["valid_count"], 2)
+        self.assertEqual(record["valuation_status"], "review_required")
+        self.assertTrue(any("duplicate evidence record" in reason for reason in record["comparable_evidence"]["reasons"]))
+
     def test_comparables_older_than_12_months_are_not_counted(self):
         from datetime import datetime, timezone, timedelta
         old_date = (datetime.now(timezone.utc).date() - timedelta(days=400)).isoformat()
