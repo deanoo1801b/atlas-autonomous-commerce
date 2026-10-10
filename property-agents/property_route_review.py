@@ -5,6 +5,56 @@ from datetime import datetime, timezone
 from typing import Any
 from contract_route_comparator import compare_routes
 
+def _comparable_sales_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
+    """Validate structured sold-comparable evidence; raw counts alone never verify comparables."""
+    raw = candidate.get("Comparable Sales Evidence")
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except (TypeError, json.JSONDecodeError):
+            raw = []
+    if not isinstance(raw, list):
+        raw = []
+    today = datetime.now(timezone.utc).date()
+    valid = []
+    reasons = []
+    for index, item in enumerate(raw, start=1):
+        if not isinstance(item, dict):
+            reasons.append(f"Comparable {index}: record is not structured data")
+            continue
+        sold_price = item.get("sold_price") or item.get("sold_price_gbp")
+        try:
+            price = float(str(sold_price).replace(",", "").replace("£", "").strip())
+        except (TypeError, ValueError):
+            price = 0
+        sale_date = None
+        try:
+            sale_date = datetime.strptime(str(item.get("sale_date") or item.get("sold_date") or "")[:10], "%Y-%m-%d").date()
+        except ValueError:
+            pass
+        url = str(item.get("source_url") or "").strip()
+        postcode = str(item.get("postcode") or "").strip()
+        property_type = str(item.get("property_type") or "").strip()
+        missing = []
+        if price <= 0: missing.append("valid sold price")
+        if sale_date is None: missing.append("sale date")
+        elif sale_date > today: missing.append("non-future sale date")
+        elif (today - sale_date).days > 365: missing.append("sale within 12 months")
+        if not url.startswith("https://"): missing.append("HTTPS evidence URL")
+        if not postcode: missing.append("postcode")
+        if not property_type: missing.append("property type")
+        if missing:
+            reasons.append(f"Comparable {index}: missing/invalid " + ", ".join(missing))
+        else:
+            valid.append({"sold_price": price, "sale_date": sale_date.isoformat(), "source_url": url,
+                          "postcode": postcode, "property_type": property_type})
+    if len(valid) < 3:
+        reasons.insert(0, f"Only {len(valid)} of {len(raw)} comparable records pass minimum evidence checks; at least 3 required")
+    return {"valid_count": len(valid), "submitted_count": len(raw), "valid_comparables": valid,
+            "status": "STRUCTURED_EVIDENCE_PRESENT_REQUIRES_HUMAN_VERIFICATION" if len(valid) >= 3 else "INSUFFICIENT_VERIFIED_EVIDENCE",
+            "reasons": reasons}
+
+
 def candidate_to_route_input(candidate: dict[str, Any]) -> dict[str, Any]:
     """Map available fields only; do not invent valuation, comparable or legal evidence."""
     return {
@@ -12,7 +62,7 @@ def candidate_to_route_input(candidate: dict[str, Any]) -> dict[str, Any]:
         "source_evidence_url": candidate.get("Source URL"),
         "asking_price": candidate.get("Asking Price") or candidate.get("Current Asking Price"),
         "estimated_market_value": candidate.get("Estimated Market Value") or candidate.get("Estimated Completed Value") or candidate.get("Post-Works Market Value") or candidate.get("Estimated Market Value After Works"),
-        "comparable_sales_count": candidate.get("Comparable Sales Count") or candidate.get("Comparable Sold Sales Count") or 0,
+        "comparable_sales_count": _comparable_sales_evidence(candidate)["valid_count"],
         "sourcing_fee": candidate.get("Proposed Sourcing Fee"),
         "assignment_fee": candidate.get("Proposed Assignment Fee"),
         "contract_purchase_price": candidate.get("Contract Purchase Price"),
@@ -45,11 +95,16 @@ def _prioritise_record(record: dict[str, Any]) -> dict[str, Any]:
         score += 10
     else:
         reasons.append("No valid HTTPS source link")
-    if isinstance(discount, (int, float)) and comps_status == "supported_by_minimum_count_only_not_valued_by_this_module":
+    comparable_evidence = record.get("comparable_evidence", {})
+    if (isinstance(discount, (int, float))
+        and comps_status == "supported_by_minimum_count_only_not_valued_by_this_module"
+        and comparable_evidence.get("valid_count", 0) >= 3):
         score += 20
         reasons.append("Entered price/value and minimum comparable count present; verify source comparables independently")
     else:
         reasons.append("Market value/comparable evidence incomplete")
+        for evidence_reason in comparable_evidence.get("reasons", [])[:3]:
+            reasons.append(evidence_reason)
     if sourcing.get("gross_fee_estimate") is not None:
         score += 5
     else:
@@ -79,6 +134,7 @@ def build_review_queue(candidates: list[dict[str, Any]], scan_id: str = "UNASSIG
             "overall_status": result["overall_status"],
             "market_value_discount_pct": result["market_value_discount_pct"],
             "valuation_status": result["valuation_status"],
+            "comparable_evidence": _comparable_sales_evidence(candidate),
             "routes": result["routes"],
             "automatic_commitment": False, "automatic_contacting": False,
             "automatic_offer": False, "automatic_contracting": False,
