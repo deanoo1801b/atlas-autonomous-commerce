@@ -6,7 +6,7 @@ import unittest
 
 os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
 
-from engine import _identity_key, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates, classify_relisting, _property_relisting_key, geography_status
+from engine import _identity_key, _canonical_url, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates, classify_relisting, _property_relisting_key, geography_status
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
 from planning_opportunity_agent import analyse_planning_candidate, development_profit_scenario
@@ -125,6 +125,15 @@ class IdentityTests(unittest.TestCase):
             "Source URL": "https://example.test/property/1",
         }
         self.assertEqual(_identity_key(a), _identity_key(b))
+
+    def test_canonical_url_normalizes_host_scheme_port_and_trailing_slash(self):
+        variants = [
+            "http://www.Example.test:80/property/1/?utm_source=portal",
+            "https://example.test/property/1#details",
+            "https://EXAMPLE.TEST/property/1/",
+        ]
+        self.assertEqual(len({_canonical_url(url) for url in variants}), 1)
+        self.assertEqual(_canonical_url(variants[0]), "https://example.test/property/1")
 
     def test_open_market_identity_uses_provider_listing_id_over_url(self):
         a = {
