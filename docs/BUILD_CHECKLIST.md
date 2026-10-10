@@ -165,7 +165,18 @@ All specialist outputs feed the central Opportunity Report and ATLAS Decision Ga
 - [x] Retrieve recent product sample and total catalogue count
 - [x] Query last 31 days of sales analytics
 - [x] Save baseline report to docs/reports/2026-10-10-shopify-baseline.md
-- [ ] Independently verify order count and analytics consistency
-- [ ] Inspect sessions, cart, checkout and conversion data
+- [x] Independently verify order count and analytics consistency (order lookup also returned zero)
+- [x] Inspect sessions, cart, checkout and conversion data (201 sessions; one add-to-cart; one checkout started; zero completed orders)
 - [ ] Audit inventory/fulfilment semantics before flagging zero-stock items
 - [ ] Generate ranked Opportunity Report with verified evidence
+
+
+## Phase 1F — Funnel Diagnosis
+- [x] Verify zero-order analytics with independent order lookup
+- [x] Retrieve 31-day sessions and checkout funnel data
+- [x] Save diagnostic report to docs/reports/2026-10-10-commerce-funnel-check.md
+- [ ] Confirm connected Shopify domain matches the intended live store
+- [ ] Review storefront purchase journey and checkout configuration
+- [ ] Validate product availability and fulfilment assumptions
+- [ ] Validate analytics event tracking
+- [ ] Produce ranked conversion and traffic opportunity recommendations
