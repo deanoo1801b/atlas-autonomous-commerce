@@ -204,3 +204,12 @@ All specialist outputs feed the central Opportunity Report and ATLAS Decision Ga
 - [ ] Sync real supplier inventory or apply verified made-to-order/POD inventory configuration
 - [ ] Recheck variant availability after supplier configuration
 - [ ] Test add-to-cart and checkout using a non-charged payment test
+
+
+## Phase 1I — Supplier/Location Mapping
+- [x] Inspect installed Shopify fulfilment services and locations (Manual UK fulfilment and Gelato)
+- [x] Compare inventory levels for three unavailable products (levels returned only at Manual UK location)
+- [x] Confirm sampled unavailable product variants have zero available stock at the Manual location
+- [ ] Verify whether each affected product is actually connected to Gelato or another supplier
+- [ ] Correct supplier app mapping/location and inventory synchronization based on verified supplier behaviour
+- [ ] Retest availableForSale and customer add-to-cart after correction
