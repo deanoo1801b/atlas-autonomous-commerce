@@ -197,6 +197,23 @@ def render_review_html(report: dict[str, Any]) -> str:
         f"<li><strong>{esc(band)}:</strong> {count}</li>"
         for band, count in band_counts.items()
     )
+    insufficient_comparables = sum(
+        1 for record in records
+        if record.get("comparable_evidence", {}).get("valid_count", 0) < 3
+    )
+    sourcing_blocker_count = sum(
+        len(record.get("routes", {}).get("property_sourcing", {}).get("blockers", []))
+        for record in records
+    )
+    assignment_blocker_count = sum(
+        len(record.get("routes", {}).get("contract_assignment", {}).get("blockers", []))
+        for record in records
+    )
+    route_summary = (
+        f"<li><strong>Leads below the three-comparable evidence threshold:</strong> {insufficient_comparables}</li>"
+        f"<li><strong>Recorded property-sourcing blockers:</strong> {sourcing_blocker_count}</li>"
+        f"<li><strong>Recorded contract-assignment blockers:</strong> {assignment_blocker_count}</li>"
+    )
 
     rows = []
     for record in records:
@@ -259,7 +276,9 @@ body{{font:16px/1.5 system-ui,sans-serif;margin:1rem;color:#172033}}h1{{font-siz
 <p>Scan: <strong>{esc(report.get('scan_id'))}</strong> · Generated UTC: {esc(report.get('generated_at_utc'))} · Candidates: {len(records)}</p>
 <section aria-label="Evidence review priority summary"><h2>Evidence review work order</h2>
 <ul>{priority_summary}</ul>
-<p class="muted">Higher scores mean more evidence fields are present for a human to verify. They do not indicate property quality, expected profit, permission to proceed or approval to transact.</p></section>
+<p class="muted">Higher scores mean more evidence fields are present for a human to verify. They do not indicate property quality, expected profit, permission to proceed or approval to transact.</p>
+<h3>Evidence and route blockers</h3><ul>{route_summary}</ul>
+<p class="muted">Blocker totals count recorded items only; they are not a complete legal or compliance assessment. Assignment must remain on hold until all applicable requirements are independently reviewed.</p></section>
 <div class="notice"><strong>REVIEW ONLY — NOT APPROVED TO TRANSACT.</strong>
 No seller/buyer contact, offer, contract, payment, referral, publishing or Smartsheet write is performed by this report.
 All route outcomes require human review, applicable compliance checks and independent solicitor review. Missing information is not assumed safe.</div>
