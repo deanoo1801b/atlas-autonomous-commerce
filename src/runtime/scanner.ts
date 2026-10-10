@@ -2,8 +2,9 @@ import { randomUUID } from "node:crypto";
 import { recordAudit } from "./audit-log.js";
 import { createOpportunity } from "./opportunity-report.js";
 import { persistOpportunity } from "./opportunity-store.js";
+import type { RuntimeMode } from "./types.js";
 
-export async function runOpportunityScanner(): Promise<void> {
+export async function runOpportunityScanner(mode: RuntimeMode = "DRY_RUN"): Promise<void> {
   const now = new Date().toISOString();
   const record = createOpportunity({
     project: "Atlas Goods Store",
@@ -28,7 +29,7 @@ export async function runOpportunityScanner(): Promise<void> {
     timestamp: now,
     agent: "opportunity-scanner",
     action: "opportunity_scan",
-    mode: "DRY_RUN",
+    mode,
     evidence: record.evidence,
     approval_required: true,
     result: "Opportunity record persisted without making a commercial recommendation."
