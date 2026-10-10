@@ -72,6 +72,31 @@ def _comparable_sales_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
             "reasons": reasons}
 
 
+def _lead_channel_review(candidate: dict[str, Any]) -> dict[str, str]:
+    """Keep agent listings separate from direct-owner leads; never infer owner status."""
+    source = str(candidate.get("Source") or "").strip().lower()
+    lead_type = str(candidate.get("Lead Type") or "").strip().lower()
+    if source.startswith("open-properties/") or lead_type in {"open market listing", "agent listing"}:
+        return {
+            "lead_channel": "AGENT_LISTING_MARKET_INTELLIGENCE_ONLY",
+            "lead_channel_reason": "Public agent/portal listing; not a direct-owner lead and not evidence of owner motivation.",
+        }
+    explicit_direct = (
+        source in {"direct owner", "owner direct", "direct-to-owner"}
+        or lead_type in {"direct owner", "owner direct", "direct-to-owner"}
+        or candidate.get("Owner Direct") is True
+    )
+    if explicit_direct:
+        return {
+            "lead_channel": "DIRECT_OWNER_CLAIM_REQUIRES_VERIFICATION",
+            "lead_channel_reason": "Direct-owner status is explicitly claimed in the record but identity, ownership and contact permission still require verification.",
+        }
+    return {
+        "lead_channel": "UNVERIFIED_CHANNEL_REQUIRES_REVIEW",
+        "lead_channel_reason": "Source channel is not explicit; do not classify as direct-owner or motivated-seller lead without evidence.",
+    }
+
+
 def candidate_to_route_input(candidate: dict[str, Any]) -> dict[str, Any]:
     """Map available fields only; do not invent valuation, comparable or legal evidence."""
     return {
@@ -146,6 +171,7 @@ def build_review_queue(candidates: list[dict[str, Any]], scan_id: str = "UNASSIG
             "area": candidate.get("Area") or candidate.get("Property Address") or candidate.get("Address"),
             "lead_type": candidate.get("Lead Type"),
             "opportunity_type": candidate.get("Opportunity Type"),
+            **_lead_channel_review(candidate),
             "source_url": candidate.get("Source URL"),
             "asking_price": candidate.get("Asking Price"),
             "overall_status": result["overall_status"],
@@ -262,7 +288,8 @@ def render_review_html(report: dict[str, Any]) -> str:
             f"<td><strong>{esc(priority_band)}</strong><br>Evidence score: {esc(priority_score_text)}"
             f"<ul>{reasons_html or '<li>Priority reasons not recorded</li>'}</ul></td>"
             f"<td>{esc(record.get('deal_id'))}<br>{esc(record.get('area'))}</td>"
-            f"<td>{esc(record.get('lead_type'))}<br>{esc(record.get('opportunity_type'))}</td>"
+            f"<td>{esc(record.get('lead_type'))}<br>{esc(record.get('opportunity_type'))}"
+            f"<br><strong>{esc(record.get('lead_channel'))}</strong><br>{esc(record.get('lead_channel_reason'))}</td>"
             f"<td>{esc(record.get('asking_price'))}<br>Discount: {esc(discount_text)}<br>{esc(record.get('valuation_status'))}</td>"
             f"<td>{source_link}</td>{evidence_cell}{''.join(route_cells)}"
             "</tr>"
