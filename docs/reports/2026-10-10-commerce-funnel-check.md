@@ -40,6 +40,10 @@ No products, prices, inventory, orders, settings, marketing budgets, or publishi
 
 - Follow-up inventory-level queries for three unavailable examples (the children's vehicle mug, hot-pink graphic hoodie, and lion graphic T-shirt) showed every variant has available = 0, committed = 0, onHand = 0 at the single location `Atlas Goods Store - UK Online Fulfilment`. This confirms there is no stock currently recorded at that Shopify location for those examples. The supplier's real stock/production model remains unverified.
 
+
+- Further read-only fulfilment inspection found two Shopify fulfilment services/locations: `Manual` at `Atlas Goods Store - UK Online Fulfilment`, and `gelato` at a separate `gelato` location. For the three unavailable examples and the sampled variants queried, inventory levels were returned only at the Manual UK fulfilment location; no inventory levels were returned for the Gelato location. The affected products' vendor field is `Atlas Goods Store`, and the queried product data does not prove that those items are correctly connected to Gelato or another supplier.
+- Root-cause direction is now clearer: tracked products may be configured as manually fulfilled with zero inventory, while a Gelato fulfilment location exists separately. Do not assume those products are Gelato-linked merely because the Gelato service is installed. Verify the products in the Gelato app and correct the actual fulfilment/inventory integration before changing sellability.
+
 ## Evidence-based fix path (no changes made)
 1. For each tracked zero-inventory product, identify its supplier/fulfilment app and the location that fulfils online orders; sync the supplier's real available quantity and confirm that location has valid shipping rates.
 2. For genuinely made-to-order/POD items, configure the supplier integration and Shopify inventory tracking according to the supplier's documented fulfilment model. Only allow sales with zero stock if the supplier can fulfil orders reliably; Shopify documents this as the "Continue selling when out of stock" setting, but it should not be enabled as a blanket fix.
