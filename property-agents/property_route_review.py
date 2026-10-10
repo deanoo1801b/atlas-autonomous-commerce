@@ -220,6 +220,19 @@ def render_review_html(report: dict[str, Any]) -> str:
         discount_text = f"{discount:.2f}%" if isinstance(discount, (int, float)) else "Not calculated"
         reasons = record.get("priority_reasons", [])
         reasons_html = "".join(f"<li>{esc(reason)}</li>" for reason in reasons)
+        evidence = record.get("comparable_evidence", {})
+        submitted = evidence.get("submitted_count", 0)
+        valid = evidence.get("valid_count", 0)
+        evidence_status = evidence.get("status", "INSUFFICIENT_VERIFIED_EVIDENCE")
+        evidence_reasons = evidence.get("reasons", [])
+        evidence_reasons_html = "".join(f"<li>{esc(reason)}</li>" for reason in evidence_reasons)
+        evidence_cell = (
+            f"<td><strong>{esc(valid)} valid / {esc(submitted)} submitted</strong>"
+            f"<p>{esc(evidence_status)}</p>"
+            f"<p>Structured fields passed minimum checks only; independent human verification is still required.</p>"
+            f"<details><summary>{len(evidence_reasons)} evidence gap(s) / note(s)</summary>"
+            f"<ul>{evidence_reasons_html or '<li>No format gaps recorded; evidence still requires independent verification.</li>'}</ul></details></td>"
+        )
         priority_score = record.get("review_priority_score", 0)
         priority_score_text = str(priority_score) if isinstance(priority_score, (int, float)) else "Not scored"
         priority_band = record.get("review_priority_band") or "Incomplete record"
@@ -230,10 +243,10 @@ def render_review_html(report: dict[str, Any]) -> str:
             f"<td>{esc(record.get('deal_id'))}<br>{esc(record.get('area'))}</td>"
             f"<td>{esc(record.get('lead_type'))}<br>{esc(record.get('opportunity_type'))}</td>"
             f"<td>{esc(record.get('asking_price'))}<br>Discount: {esc(discount_text)}<br>{esc(record.get('valuation_status'))}</td>"
-            f"<td>{source_link}</td>{''.join(route_cells)}"
+            f"<td>{source_link}</td>{evidence_cell}{''.join(route_cells)}"
             "</tr>"
         )
-    body = "".join(rows) or '<tr><td colspan="7">No candidates in this run. An empty queue is not evidence that no opportunities exist.</td></tr>'
+    body = "".join(rows) or '<tr><td colspan="8">No candidates in this run. An empty queue is not evidence that no opportunities exist.</td></tr>'
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Inspiration Properties — Contract Route Review</title>
@@ -251,7 +264,7 @@ body{{font:16px/1.5 system-ui,sans-serif;margin:1rem;color:#172033}}h1{{font-siz
 No seller/buyer contact, offer, contract, payment, referral, publishing or Smartsheet write is performed by this report.
 All route outcomes require human review, applicable compliance checks and independent solicitor review. Missing information is not assumed safe.</div>
 <p class="muted">Discount is only a preliminary calculation from entered asking price and estimated market value. It is not a valuation; comparables and source evidence require independent verification.</p>
-<div class="wrap"><table><thead><tr><th>Evidence review priority</th><th>Deal</th><th>Type</th><th>Price / discount</th><th>Source evidence</th><th>Property sourcing</th><th>Contract assignment</th></tr></thead><tbody>{body}</tbody></table></div>
+<div class="wrap"><table><thead><tr><th>Evidence review priority</th><th>Deal</th><th>Type</th><th>Price / discount</th><th>Source evidence</th><th>Comparable sales evidence</th><th>Property sourcing</th><th>Contract assignment</th></tr></thead><tbody>{body}</tbody></table></div>
 </body></html>"""
 
 
