@@ -53,11 +53,36 @@ class PropertyRouteReviewTests(unittest.TestCase):
         self.assertIn("No valid HTTPS source link", record["priority_reasons"])
 
     def test_priority_is_evidence_work_order_only(self):
-        report = build_review_queue([{"Lead ID":"IP-P","Source URL":"https://example.test/p","Asking Price":140000,"Estimated Market Value":200000,"Comparable Sales Count":3,"Proposed Sourcing Fee":3000}],"SCAN-P")
+        from datetime import datetime, timezone
+        from datetime import timedelta
+        sold = (datetime.now(timezone.utc).date() - timedelta(days=45)).isoformat()
+        comps = [{"sold_price": 185000, "sale_date": sold, "source_url": f"https://example.test/sold/{i}",
+                  "postcode": "CR0 1AA", "property_type": "terraced"} for i in range(3)]
+        report = build_review_queue([{"Lead ID":"IP-P","Source URL":"https://example.test/p","Asking Price":140000,
+            "Estimated Market Value":200000,"Comparable Sales Evidence":comps,"Proposed Sourcing Fee":3000}],"SCAN-P")
         record = report["records"][0]
         self.assertEqual(record["review_priority_band"],"Review evidence first")
+        self.assertEqual(record["comparable_evidence"]["valid_count"],3)
         self.assertIn("not investment advice", report["priority_meaning"])
         self.assertFalse(record["automatic_offer"])
+
+    def test_raw_comparable_count_does_not_verify_bmv_evidence(self):
+        report = build_review_queue([{"Lead ID":"IP-RAW","Source URL":"https://example.test/p",
+            "Asking Price":140000,"Estimated Market Value":200000,"Comparable Sales Count":12}], "SCAN-RAW")
+        record = report["records"][0]
+        self.assertEqual(record["comparable_evidence"]["valid_count"],0)
+        self.assertEqual(record["valuation_status"],"insufficient_comparables")
+        self.assertNotEqual(record["review_priority_band"],"Review evidence first")
+
+    def test_comparables_older_than_12_months_are_not_counted(self):
+        from datetime import datetime, timezone, timedelta
+        old_date = (datetime.now(timezone.utc).date() - timedelta(days=400)).isoformat()
+        comps = [{"sold_price": 185000, "sale_date": old_date, "source_url": f"https://example.test/sold/{i}",
+                  "postcode": "CR0 1AA", "property_type": "terraced"} for i in range(3)]
+        record = build_review_queue([{"Lead ID":"IP-OLD","Asking Price":140000,"Estimated Market Value":200000,
+            "Comparable Sales Evidence":comps}], "SCAN-OLD")["records"][0]
+        self.assertEqual(record["comparable_evidence"]["valid_count"],0)
+        self.assertTrue(any("sale within 12 months" in reason for reason in record["comparable_evidence"]["reasons"]))
 
     def test_queue_file_is_valid_json_and_audit_only(self):
         with tempfile.TemporaryDirectory() as tmp:
