@@ -29,3 +29,17 @@ Traffic exists, but the observed funnel has not produced completed orders. The s
 
 ## Controls
 No products, prices, inventory, orders, settings, marketing budgets, or publishing status were changed. This is a diagnostic report, not proof of a specific checkout fault.
+
+## Follow-up verification — 10 October 2026
+- The Shopify Admin API confirms the connected shop is **Atlas goods store**, its `myshopify.com` domain is `gjb4b5-nz.myshopify.com`, and its primary domain is `https://atlasgoodsstore.co.uk`. The domain mismatch is therefore expected Shopify architecture, not evidence of the wrong store.
+- The Admin API returned zero abandoned checkouts (exact count) and no checkout records in the latest 10. This differs from the session analytics' one session reaching checkout; these may measure different events/stages, so event tracking and checkout entry need validation.
+- Product publication and saleability were checked for the 10 most recently updated active products. All 10 have an Online Store URL and publication timestamp. However, **5 of the 10 sampled active products had tracked inventory enabled, total inventory 0, and all sampled variants returned `availableForSale: false` with inventory policy `DENY`**. The other 5 sampled products had inventory tracking disabled and their sampled variants returned `availableForSale: true`.
+- This is a confirmed availability problem for the affected sample, not just a generic zero-stock warning. It could prevent customers from buying those items. It is not yet established whether those products are supplier-stocked or print-on-demand, so inventory must not be fabricated or overselling enabled blindly.
+- The store's configured shipping zones include the UK and several international markets including the US. This does not prove that the appropriate rate is available for each product/fulfilment location.
+
+## Evidence-based fix path (no changes made)
+1. For each tracked zero-inventory product, identify its supplier/fulfilment app and the location that fulfils online orders; sync the supplier's real available quantity and confirm that location has valid shipping rates.
+2. For genuinely made-to-order/POD items, configure the supplier integration and Shopify inventory tracking according to the supplier's documented fulfilment model. Only allow sales with zero stock if the supplier can fulfil orders reliably; Shopify documents this as the "Continue selling when out of stock" setting, but it should not be enabled as a blanket fix.
+3. Confirm each affected variant returns `availableForSale: true` after the correct supplier/inventory configuration and test adding it to cart.
+4. Place a non-charged test order using Shopify's payment test mode only after the payment provider setup is understood. Test mode prevents live credit-card orders while active, so deactivate it after testing.
+5. Investigate why session analytics records one checkout-start session while the Admin API has no abandoned checkout records. Do not treat this mismatch alone as proof of a broken checkout.
