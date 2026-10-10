@@ -67,3 +67,13 @@ Installed apps observed through Shopify Admin API include Gelato: Print on Deman
 4. Only after supplier truth is established, correct the integration and test availability/cart with no real payment.
 
 No store data or settings were changed during this check.
+
+
+## Public storefront reachability attempt — 10 October 2026
+
+The Admin API returned canonical Online Store URLs for the three affected products:
+- Vehicle mug: https://atlasgoodsstore.co.uk/products/happy-little-vehicles-kids-novelty-mug-cartoon-fire-engine-car-tractor
+- Lion graphic T-shirt: https://atlasgoodsstore.co.uk/products/mens-king-of-colour-lion-graphic-t-shirt-black-white
+- Hot-pink hoodie: https://atlasgoodsstore.co.uk/products/womens-after-hours-grin-graphic-hoodie-hot-pink
+
+Attempting to open these public URLs through the available web inspection tool returned “URL is not accessible via this tool.” This is a limitation of the inspection route, not proof that the site is down. The customer-facing product/cart/shipping/checkout journey remains untested and must be tested directly in a browser or by the store owner before any checkout diagnosis is considered complete.
