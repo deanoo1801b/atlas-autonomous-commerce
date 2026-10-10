@@ -1,5 +1,6 @@
 import os, re, hashlib, time, json
 from datetime import datetime, timezone
+from urllib.parse import urlsplit, urlunsplit
 import requests
 from private_seller_agent import discover_private_sellers
 from open_properties_agent import discover_open_properties, to_property_lead, last_scan_complete
@@ -65,8 +66,28 @@ def norm(x):
     return re.sub(r"\s+", " ", str(x or "")).strip().lower()
 
 def _canonical_url(url):
+    """Normalize a listing URL for conservative deduplication; remove tracking noise."""
     raw = str(url or "").strip()
-    return raw.split("#", 1)[0].split("?", 1)[0].rstrip("/")
+    if not raw:
+        return ""
+    try:
+        parts = urlsplit(raw)
+        if parts.scheme.lower() not in ("http", "https") or not parts.hostname:
+            return raw.split("#", 1)[0].split("?", 1)[0].rstrip("/").lower()
+        host = parts.hostname.lower()
+        if host.startswith("www."):
+            host = host[4:]
+        port = parts.port
+        if port and not ((parts.scheme.lower() == "http" and port == 80) or
+                         (parts.scheme.lower() == "https" and port == 443)):
+            host = f"{host}:{port}"
+        path = "/" + "/".join(segment for segment in parts.path.split("/") if segment)
+        if path != "/":
+            path = path.rstrip("/")
+        # Treat HTTP/HTTPS variants of the same public listing as one identity.
+        return urlunsplit(("https", host, path, "", ""))
+    except (ValueError, TypeError):
+        return raw.split("#", 1)[0].split("?", 1)[0].rstrip("/").lower()
 
 def _identity_key(v):
     explicit = str(v.get("Property Identity Key") or "").strip()
