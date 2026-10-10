@@ -37,6 +37,9 @@ No products, prices, inventory, orders, settings, marketing budgets, or publishi
 - This is a confirmed availability problem for the affected sample, not just a generic zero-stock warning. It could prevent customers from buying those items. It is not yet established whether those products are supplier-stocked or print-on-demand, so inventory must not be fabricated or overselling enabled blindly.
 - The store's configured shipping zones include the UK and several international markets including the US. This does not prove that the appropriate rate is available for each product/fulfilment location.
 
+
+- Follow-up inventory-level queries for three unavailable examples (the children's vehicle mug, hot-pink graphic hoodie, and lion graphic T-shirt) showed every variant has available = 0, committed = 0, onHand = 0 at the single location `Atlas Goods Store - UK Online Fulfilment`. This confirms there is no stock currently recorded at that Shopify location for those examples. The supplier's real stock/production model remains unverified.
+
 ## Evidence-based fix path (no changes made)
 1. For each tracked zero-inventory product, identify its supplier/fulfilment app and the location that fulfils online orders; sync the supplier's real available quantity and confirm that location has valid shipping rates.
 2. For genuinely made-to-order/POD items, configure the supplier integration and Shopify inventory tracking according to the supplier's documented fulfilment model. Only allow sales with zero stock if the supplier can fulfil orders reliably; Shopify documents this as the "Continue selling when out of stock" setting, but it should not be enabled as a blanket fix.
