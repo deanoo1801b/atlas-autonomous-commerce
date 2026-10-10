@@ -19,6 +19,7 @@ def _comparable_sales_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
     today = datetime.now(timezone.utc).date()
     valid = []
     seen_comparables = set()
+    seen_source_urls = set()
     reasons = []
     for index, item in enumerate(raw, start=1):
         if not isinstance(item, dict):
@@ -53,11 +54,14 @@ def _comparable_sales_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
         if missing:
             reasons.append(f"Comparable {index}: missing/invalid " + ", ".join(missing))
         else:
-            # Repeated rows or copied URLs must not inflate the minimum of three sales.
-            identity = (url.lower().rstrip("/"), postcode, sale_date.isoformat(), round(price, 2), property_type)
-            if identity in seen_comparables:
+            # A source URL can only support one comparable; changing other fields on a
+            # copied URL must not inflate the three-sale minimum.
+            normalized_url = url.lower().rstrip("/")
+            identity = (normalized_url, postcode, sale_date.isoformat(), round(price, 2), property_type)
+            if normalized_url in seen_source_urls or identity in seen_comparables:
                 reasons.append(f"Comparable {index}: duplicate evidence record; not counted twice")
                 continue
+            seen_source_urls.add(normalized_url)
             seen_comparables.add(identity)
             valid.append({"sold_price": price, "sale_date": sale_date.isoformat(), "source_url": url,
                           "postcode": postcode, "property_type": property_type})
