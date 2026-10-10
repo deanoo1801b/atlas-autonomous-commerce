@@ -39,7 +39,13 @@ class PropertyRouteReviewTests(unittest.TestCase):
         self.assertIn("<strong>Incomplete record:</strong> 1", page)
         self.assertIn("Evidence score:", page)
         self.assertIn("Market value/comparable evidence incomplete", page)
+        self.assertIn("0 valid / 0 submitted", page)
+        self.assertIn("INSUFFICIENT_VERIFIED_EVIDENCE", page)
         self.assertIn("<th>Evidence review priority</th>", page)
+        self.assertIn("<th>Comparable sales evidence</th>", page)
+        self.assertIn("3 valid / 3 submitted", page)
+        self.assertIn("STRUCTURED_EVIDENCE_PRESENT_REQUIRES_HUMAN_VERIFICATION", page)
+        self.assertIn("independent human verification is still required", page)
         self.assertIn("not indicate property quality", page)
 
     def test_html_file_is_written(self):
