@@ -23,10 +23,14 @@ class PropertyRouteReviewTests(unittest.TestCase):
         self.assertIn("Contract assignment", page)
 
     def test_html_shows_priority_bands_scores_and_reasons(self):
+        from datetime import datetime, timezone, timedelta
+        sold = (datetime.now(timezone.utc).date() - timedelta(days=45)).isoformat()
+        comps = [{"sold_price": 185000, "sale_date": sold, "source_url": f"https://example.test/sold/{i}",
+                  "postcode": "CR0 1AA", "property_type": "terraced"} for i in range(3)]
         report = build_review_queue([
             {"Lead ID":"IP-PRIORITY", "Area":"Croydon", "Source URL":"https://example.test/p",
              "Asking Price":140000, "Estimated Market Value":200000,
-             "Comparable Sales Count":3, "Proposed Sourcing Fee":3000},
+             "Comparable Sales Evidence":comps, "Proposed Sourcing Fee":3000},
             {"Lead ID":"IP-INCOMPLETE", "Area":"Sutton"}
         ], "SCAN-PRIORITY")
         page = render_review_html(report)
