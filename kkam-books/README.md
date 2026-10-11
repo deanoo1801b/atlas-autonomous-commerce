@@ -61,7 +61,7 @@ Use a stable product ID and version metadata. Never overwrite an approved final 
 
 ## Status
 
-Research and implementation are ongoing. The current source repository tree has 2,061 workflow JSON files, despite the README advertising 4,343. The recursive tree was complete and non-truncated. Only a targeted sample of JSON bodies has been audited so far; do not describe the whole collection as fully inspected.
+Research and implementation are ongoing. The current source repository tree has 2,061 workflow JSON files, despite the README advertising 4,343. All 2,061 JSON bodies have now been fetched and parsed by the static scanner; targeted candidates have been inspected in detail. This does not mean every workflow was imported or executed. The collection has significant graph-integrity warnings; see the inventory and ranked shortlist.
 
 
 ## Run the factory locally
@@ -99,3 +99,10 @@ python -m kkam_pdf_factory.cli manifest --product-id KKAM-0001 --version 1.0.0 -
 ```
 
 The CLI returns a non-zero exit code for failed technical QA. Rendering creates evidence for review; it does not automatically approve the visual quality of the product.
+
+
+## Verified first milestone
+
+- Latest GitHub Actions test run: [30 tests passed; sample PDFs built and QA checked](https://github.com/deanoo1801b/atlas-autonomous-commerce/actions/runs/38180138371).
+- Full collection static scan: [audit run](https://github.com/deanoo1801b/atlas-autonomous-commerce/actions/runs/38179913018).
+- Demo package artifact: [download from the test run](https://github.com/deanoo1801b/atlas-autonomous-commerce/actions/runs/38180138371/artifacts/11716643866). It contains a sample business workbook, sample colouring PDF, rendered pages, contact sheet, QA JSON and SHA-256 manifest. Demo content/artwork is synthetic and **not approved for commercial sale**.
