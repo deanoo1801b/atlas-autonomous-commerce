@@ -41,7 +41,7 @@ jobs:
           d=json.load(open(p, encoding='utf-8'))
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
               f.write('# KKAM n8n collection static audit\n\n')
-              for k in ('tree_sha','workflow_json_paths','scanned','valid_json','failed_download_or_parse','files_with_noop','files_with_shell_nodes','files_with_http_nodes','files_with_error_handler','files_with_write_side_effects'):
+              for k in ('tree_sha','workflow_json_paths','scanned','valid_json','failed_download_or_parse','files_with_noop','files_with_dangling_connections','total_dangling_connection_references','files_with_shell_nodes','files_with_http_nodes','files_with_error_handler','files_with_write_side_effects'):
                   f.write(f'- **{k}:** {d.get(k)}\n')
               f.write('\nThis is static inspection only. No workflow was imported or executed.\n')
           PY
