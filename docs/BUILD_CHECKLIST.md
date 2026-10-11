@@ -232,3 +232,14 @@ Scope: review the five checkout recommendations from the supplied reference for 
 - [ ] Record screenshots/evidence and final state of each setting
 - [ ] Address-validation caveat: Shopify's documented pre-checkout address validation country list does not include the United Kingdom; confirm current availability in this store before expecting it to validate UK addresses
 
+## Phase 1K — n8n Workflow Discovery for ATLAS (12 October 2026)
+- [x] Identify and confirm the 4,343-workflow Zie619 collection and searchable catalogue
+- [x] Search Shopify, inventory, SEO/product research, competitor research, social posting and error-handling workflows
+- [x] Create targeted shortlist with direct source links and recommended build order at docs/reports/2026-10-12-n8n-atlas-workflow-shortlist.md
+- [x] Define safe integration rules: dry-run first, source-of-truth checks, audit logs, idempotency and approval gates
+- [ ] Inspect shortlisted workflow JSONs for stale APIs, destructive actions, credentials, external endpoints and node compatibility
+- [ ] Score candidates against Atlas fit, security, cost, reliability and measurable impact
+- [ ] Import P0 workflows into a non-production n8n workspace and test failure paths
+- [ ] Confirm n8n instance/credentials and production deployment target
+- [ ] Enable production schedules only after documented test evidence and approval
+
