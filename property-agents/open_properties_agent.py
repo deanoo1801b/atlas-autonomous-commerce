@@ -58,6 +58,8 @@ def _run(location: str) -> tuple[list[dict[str, Any]], bool]:
     properties = payload.get("properties")
     if not isinstance(properties, list):
         return [], False
+    if any(not isinstance(item, dict) for item in properties):
+        return [], False
     return properties, True
 
 def _canonical_source_url(value: Any) -> str | None:
