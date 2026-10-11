@@ -224,4 +224,11 @@ class PropertyRouteReviewTests(unittest.TestCase):
         self.assertIn("no profit estimate published", page)
         self.assertNotIn("Net profit before tax (illustrative)", page)
 
+
+    def test_non_finite_and_boolean_discount_never_get_bmv_priority(self):
+        from property_route_review import _bmv_review_tier
+        for discount in (float("nan"), float("inf"), float("-inf"), True, False, None):
+            with self.subTest(discount=discount):
+                self.assertIn("REVIEW_REQUIRED", _bmv_review_tier(discount, 3))
+
 if __name__ == "__main__": unittest.main()
