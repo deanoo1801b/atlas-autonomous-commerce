@@ -66,8 +66,11 @@ def _canonical_source_url(value: Any) -> str | None:
         if parts.scheme.lower() not in {"http", "https"} or not parts.hostname:
             return None
         host = parts.hostname.lower()
-        if parts.port:
-            host = host + ":" + str(parts.port)
+        if host.startswith("www."):
+            host = host[4:]
+        port = parts.port
+        if port is not None and port != (443 if parts.scheme.lower() == "https" else 80):
+            host = host + ":" + str(port)
         path = "/" + "/".join(segment for segment in parts.path.split("/") if segment)
         if path != "/":
             path = path.rstrip("/")
