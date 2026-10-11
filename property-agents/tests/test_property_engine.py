@@ -284,7 +284,7 @@ class FinanceGateTests(unittest.TestCase):
         self.assertFalse(finance_ready({"Source URL": "https://example.test/property/1", "Listing Status": "Active"}))
 
     def test_finance_gate_rejects_non_finite_or_boolean_prices(self):
-        for price in ("nan", "inf", "-inf", True, False):
+        for price in ("nan", "inf", "-inf", "-1", "0", -250000, True, False):
             with self.subTest(price=price):
                 self.assertFalse(finance_ready({
                     "Source URL": "https://example.test/property/1",
