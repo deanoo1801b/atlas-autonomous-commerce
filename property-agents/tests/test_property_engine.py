@@ -283,6 +283,15 @@ class FinanceGateTests(unittest.TestCase):
     def test_finance_gate_requires_asking_price(self):
         self.assertFalse(finance_ready({"Source URL": "https://example.test/property/1", "Listing Status": "Active"}))
 
+    def test_finance_gate_rejects_non_finite_or_boolean_prices(self):
+        for price in ("nan", "inf", "-inf", True, False):
+            with self.subTest(price=price):
+                self.assertFalse(finance_ready({
+                    "Source URL": "https://example.test/property/1",
+                    "Asking Price": price,
+                    "Listing Status": "Active",
+                }))
+
     def test_finance_gate_rejects_removed_listing(self):
         self.assertFalse(finance_ready({
             "Source URL": "https://example.test/property/1",
