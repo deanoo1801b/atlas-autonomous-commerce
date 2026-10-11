@@ -14,7 +14,22 @@ A recursive Git tree request against the repository's current `main` branch retu
 - Top-level workflow folders/categories observed: **over 100**; the repository README describes 15 organized categories, but the current tree is arranged primarily by node/integration folder.
 - README also advertises 365 integrations and 29,445 nodes; these figures have not yet been independently recalculated from all JSON bodies.
 
-**Coverage caveat:** This inventory count is complete for the current Git tree because GitHub returned a non-truncated recursive tree. It is not a claim that every JSON body has been inspected. Detailed node/connection audits have been performed on a targeted sample; full JSON-body scanning remains in progress.
+**Full static scan completed:** GitHub Actions fetched and parsed all **2,061/2,061** workflow JSON bodies successfully (0 download/JSON parse failures) at tree SHA `94007c1445d9258a7da116646b79473e7c7c3282`. The scan was read-only; no workflows were imported or executed.
+
+### Static scan findings
+
+- 937 files contain at least one `noOp` node.
+- 1,363 files have at least one connection reference that does not resolve to a node name or ID under the scanner's current graph check.
+- 27,527 dangling source/target references were counted; the follow-up scan now separates source and target counts.
+- 1,360 files use node IDs as connection-map source keys rather than node names. Standard n8n exports typically use node names as connection keys, so this is a major compatibility warning to validate against the target n8n version/schema.
+- 895 files contain HTTP Request nodes.
+- 657 files contain Code/Function nodes.
+- 32 files contain shell/SSH-style node types.
+- 267 files contain file/image/PDF processing node types.
+- 1,155 files appear to contain write/publish/delete/send side-effect patterns under a conservative name/parameter heuristic.
+- Keyword hits across all files: PDF/document 255; illustration/image 86; content production 919; catalogue/storage 830; commercial distribution 238; automation/reliability 2,047. These categories overlap and are keyword matches, not counts of usable workflows.
+
+**Coverage caveat:** all current workflow JSON bodies have been fetched and JSON-parsed, and the repeatable scanner has been added to the repository. The results are static heuristic findings; graph checks can produce false positives and must be validated against n8n's import schema. A successful JSON parse is not proof of a valid or executable workflow. Deep audits are limited to the ranked candidates documented separately.
 
 ## Category counts observed in the current tree
 
