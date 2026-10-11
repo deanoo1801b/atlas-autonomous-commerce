@@ -11,6 +11,12 @@ class OpenPropertiesDeduplicationTests(unittest.TestCase):
             "https://rightmove.co.uk/property/123",
         )
 
+    def test_canonical_url_normalizes_www_and_default_https_port(self):
+        self.assertEqual(
+            agent._canonical_source_url("https://www.Rightmove.co.uk:443/property/123/"),
+            "https://rightmove.co.uk/property/123",
+        )
+
     def test_duplicate_canonical_url_is_dropped_across_search_areas(self):
         first = {"id": "A1", "portal": "rightmove", "url": "https://example.test/listing/1/?utm=x"}
         second = {"id": "A2", "portal": "rightmove", "url": "https://example.test/listing/1"}
