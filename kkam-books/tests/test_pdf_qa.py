@@ -108,6 +108,22 @@ class PdfQaTests(unittest.TestCase):
             report = analyse_colouring_pages([gray])
             self.assertIn("background-not-clean-white", report["pages"][0]["flags"])
 
+    def test_low_resolution_image_is_flagged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            from PIL import Image
+            from reportlab.lib.pagesizes import A4
+            from reportlab.pdfgen import canvas
+            root = Path(tmp)
+            image_path = root / "low-res.png"
+            Image.new("RGB", (80, 80), "black").save(image_path)
+            pdf_path = root / "low-res.pdf"
+            c = canvas.Canvas(str(pdf_path), pagesize=A4)
+            c.drawImage(str(image_path), 36, 36, width=520, height=750)
+            c.save()
+            report = inspect_pdf(pdf_path)
+            self.assertTrue(report["images"])
+            self.assertTrue(any("below 300 effective DPI" in warning for warning in report["warnings"]))
+
 
 if __name__ == "__main__":
     unittest.main()
