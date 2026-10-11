@@ -34,6 +34,7 @@ def inspect_pdf(
         "blank_rendered_pages": [],
         "duplicate_rendered_pages": [],
         "fonts": [],
+        "images": [],
     }
     if not path.is_file():
         report["errors"].append("PDF file does not exist.")
@@ -92,6 +93,23 @@ def inspect_pdf(
             font_doc = fitz.open(str(path))
             seen_fonts = set()
             for page_index, page in enumerate(font_doc, start=1):
+                for image_info in page.get_images(full=True):
+                    xref = int(image_info[0])
+                    try:
+                        extracted = font_doc.extract_image(xref)
+                        pixel_width, pixel_height = int(extracted.get("width", 0)), int(extracted.get("height", 0))
+                        rects = page.get_image_rects(xref)
+                        for rect in rects:
+                            width_in = max(float(rect.width) / 72.0, 0.001)
+                            height_in = max(float(rect.height) / 72.0, 0.001)
+                            dpi_x = pixel_width / width_in if pixel_width else 0
+                            dpi_y = pixel_height / height_in if pixel_height else 0
+                            record = {"page": page_index, "xref": xref, "pixel_width": pixel_width, "pixel_height": pixel_height, "effective_dpi_x": round(dpi_x, 1), "effective_dpi_y": round(dpi_y, 1)}
+                            report["images"].append(record)
+                            if min(dpi_x, dpi_y) < 300:
+                                report["warnings"].append(f"Page {page_index} contains an image below 300 effective DPI ({dpi_x:.1f} x {dpi_y:.1f}); review for print suitability.")
+                    except Exception as exc:
+                        report["warnings"].append(f"Could not inspect image xref {xref} on page {page_index}: {type(exc).__name__}: {exc}")
                 for font in page.get_fonts(full=True):
                     xref = int(font[0])
                     basefont = str(font[3])
