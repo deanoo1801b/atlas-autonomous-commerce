@@ -66,11 +66,13 @@ class PropertyRouteReviewTests(unittest.TestCase):
         self.assertIn("<strong>Incomplete record:</strong> 1", page)
         self.assertIn("Evidence score:", page)
         self.assertIn("Market value/comparable evidence incomplete", page)
+        self.assertIn("REVIEW_REQUIRED", page)
         self.assertIn("0 valid / 0 submitted", page)
         self.assertIn("INSUFFICIENT_VERIFIED_EVIDENCE", page)
         self.assertIn("<th>Evidence review priority</th>", page)
         self.assertIn("<th>Comparable sales evidence</th>", page)
         self.assertIn("3 valid / 3 submitted", page)
+        self.assertIn("PRIORITY_B_CANDIDATE", page)
         self.assertIn("STRUCTURED_EVIDENCE_PRESENT_REQUIRES_HUMAN_VERIFICATION", page)
         self.assertIn("independent human verification is still required", page)
         self.assertIn("not indicate property quality", page)
@@ -102,6 +104,31 @@ class PropertyRouteReviewTests(unittest.TestCase):
         self.assertEqual(record["comparable_evidence"]["valid_count"],3)
         self.assertIn("not investment advice", report["priority_meaning"])
         self.assertFalse(record["automatic_offer"])
+
+    def test_bmv_review_tier_requires_three_qualifying_comparables(self):
+        report = build_review_queue([{
+            "Lead ID": "IP-NO-COMPS", "Source URL": "https://example.test/p",
+            "Asking Price": 140000, "Estimated Market Value": 200000,
+            "Comparable Sales Count": 20
+        }], "SCAN-NO-COMPS")
+        self.assertEqual(report["records"][0]["bmv_review_tier"],
+                         "REVIEW_REQUIRED — insufficient valuation evidence")
+
+    def test_bmv_review_tier_candidate_requires_three_structured_comparables(self):
+        from datetime import datetime, timezone, timedelta
+        sold = (datetime.now(timezone.utc).date() - timedelta(days=30)).isoformat()
+        comps = [
+            {"sold_price": 185000, "sale_date": sold, "source_url": f"https://example.test/sold/{i}",
+             "postcode": "CR0 1AA", "property_type": "terraced"}
+            for i in range(3)
+        ]
+        record = build_review_queue([{
+            "Lead ID": "IP-BMV-A", "Source URL": "https://example.test/p",
+            "Asking Price": 140000, "Estimated Market Value": 200000,
+            "Comparable Sales Evidence": comps
+        }], "SCAN-BMV-A")["records"][0]
+        self.assertIn("PRIORITY_A_CANDIDATE", record["bmv_review_tier"])
+        self.assertIn("not_valued_by_this_module", record["valuation_status"])
 
     def test_raw_comparable_count_does_not_verify_bmv_evidence(self):
         report = build_review_queue([{"Lead ID":"IP-RAW","Source URL":"https://example.test/p",
