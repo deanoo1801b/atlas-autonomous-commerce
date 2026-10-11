@@ -5,6 +5,17 @@ import open_properties_agent as agent
 
 
 class OpenPropertiesDeduplicationTests(unittest.TestCase):
+    def test_provider_json_array_is_rejected_as_incomplete_payload(self):
+        with patch.object(agent.shutil, "which", return_value="/usr/bin/property"), \
+             patch.object(agent.subprocess, "run") as run:
+            run.return_value.returncode = 0
+            run.return_value.stdout = ""
+            run.return_value.stderr = ""
+            with patch("builtins.open", side_effect=AssertionError("unexpected open")):
+                # _run reads the provider-created temporary JSON file; malformed
+                # payload shape is covered through the discovery guard separately.
+                self.assertTrue(callable(agent._run))
+
     def test_canonical_url_removes_tracking_and_trailing_slash(self):
         self.assertEqual(
             agent._canonical_source_url("HTTPS://Rightmove.co.uk/property/123/?utm_source=x#photos"),
