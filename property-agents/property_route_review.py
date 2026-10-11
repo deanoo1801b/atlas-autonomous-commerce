@@ -162,10 +162,26 @@ def _prioritise_record(record: dict[str, Any]) -> dict[str, Any]:
     return {"review_priority_score": score, "review_priority_band": band, "priority_reasons": reasons}
 
 
+def _bmv_review_tier(discount: Any, valid_comparable_count: Any) -> str:
+    """Assign a preliminary BMV band only after three distinct recent comparable records pass format checks."""
+    try:
+        count = int(valid_comparable_count or 0)
+    except (TypeError, ValueError):
+        count = 0
+    if not isinstance(discount, (int, float)) or count < 3:
+        return "REVIEW_REQUIRED — insufficient valuation evidence"
+    if discount >= 30:
+        return "PRIORITY_A_CANDIDATE — 30%+ discount; human verification required"
+    if discount >= 25:
+        return "PRIORITY_B_CANDIDATE — 25–29.9% discount; human verification required"
+    return "BELOW_BMV_THRESHOLD — do not shortlist as BMV without documented human override"
+
+
 def build_review_queue(candidates: list[dict[str, Any]], scan_id: str = "UNASSIGNED") -> dict[str, Any]:
     records = []
     for candidate in candidates:
         result = compare_routes(candidate_to_route_input(candidate))
+        comparable_evidence = _comparable_sales_evidence(candidate)
         records.append({
             "deal_id": result["deal_id"],
             "area": candidate.get("Area") or candidate.get("Property Address") or candidate.get("Address"),
@@ -177,7 +193,10 @@ def build_review_queue(candidates: list[dict[str, Any]], scan_id: str = "UNASSIG
             "overall_status": result["overall_status"],
             "market_value_discount_pct": result["market_value_discount_pct"],
             "valuation_status": result["valuation_status"],
-            "comparable_evidence": _comparable_sales_evidence(candidate),
+            "bmv_review_tier": _bmv_review_tier(
+                result["market_value_discount_pct"], comparable_evidence["valid_count"]
+            ),
+            "comparable_evidence": comparable_evidence,
             "routes": result["routes"],
             "automatic_commitment": False, "automatic_contacting": False,
             "automatic_offer": False, "automatic_contracting": False,
@@ -290,7 +309,9 @@ def render_review_html(report: dict[str, Any]) -> str:
             f"<td>{esc(record.get('deal_id'))}<br>{esc(record.get('area'))}</td>"
             f"<td>{esc(record.get('lead_type'))}<br>{esc(record.get('opportunity_type'))}"
             f"<br><strong>{esc(record.get('lead_channel'))}</strong><br>{esc(record.get('lead_channel_reason'))}</td>"
-            f"<td>{esc(record.get('asking_price'))}<br>Discount: {esc(discount_text)}<br>{esc(record.get('valuation_status'))}</td>"
+            f"<td>{esc(record.get('asking_price'))}<br>Discount: {esc(discount_text)}"
+            f"<br>BMV review: <strong>{esc(record.get('bmv_review_tier'))}</strong>"
+            f"<br>{esc(record.get('valuation_status'))}</td>"
             f"<td>{source_link}</td>{evidence_cell}{''.join(route_cells)}"
             "</tr>"
         )
