@@ -187,4 +187,41 @@ class PropertyRouteReviewTests(unittest.TestCase):
             self.assertFalse(loaded["guardrails"]["writes_to_smartsheet"])
             self.assertEqual(report["mode"],"offline_human_review_queue")
 
+
+    def test_review_queue_includes_costed_development_economics(self):
+        candidate = {
+            "Lead ID": "IP-COSTED",
+            "Source URL": "https://example.test/property/1",
+            "Asking Price": 200000,
+            "Estimated Completed Value": 300000,
+            "Estimated Works Cost": 30000,
+            "Professional Fees": 5000,
+            "Finance and Holding Costs": 6000,
+            "Purchase Costs": 10000,
+            "Selling Costs": 9000,
+        }
+        record = build_review_queue([candidate], "SCAN-COSTED")["records"][0]
+        scenario = record["development_profit_scenario"]
+        self.assertEqual(scenario["estimated_net_profit_before_tax"], 35500)
+        self.assertEqual(scenario["estimated_total_cost"], 264500)
+        page = render_review_html(build_review_queue([candidate], "SCAN-COSTED"))
+        self.assertIn("Illustrative development economics", page)
+        self.assertIn("Net profit before tax (illustrative)", page)
+        self.assertIn("Margin on completed value", page)
+
+    def test_incomplete_development_costs_do_not_publish_profit(self):
+        candidate = {
+            "Lead ID": "IP-INCOMPLETE-COSTS",
+            "Source URL": "https://example.test/property/2",
+            "Asking Price": 200000,
+            "Estimated Completed Value": 300000,
+            "Estimated Works Cost": 30000,
+        }
+        report = build_review_queue([candidate], "SCAN-INCOMPLETE-COSTS")
+        scenario = report["records"][0]["development_profit_scenario"]
+        self.assertIsNone(scenario.get("estimated_net_profit_before_tax"))
+        page = render_review_html(report)
+        self.assertIn("no profit estimate published", page)
+        self.assertNotIn("Net profit before tax (illustrative)", page)
+
 if __name__ == "__main__": unittest.main()
