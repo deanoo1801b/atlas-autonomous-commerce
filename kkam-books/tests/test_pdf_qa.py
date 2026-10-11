@@ -124,6 +124,19 @@ class PdfQaTests(unittest.TestCase):
             self.assertTrue(report["images"])
             self.assertTrue(any("below 300 effective DPI" in warning for warning in report["warnings"]))
 
+    def test_font_embedding_status_is_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.pdfgen import canvas
+            path = Path(tmp) / "font-check.pdf"
+            c = canvas.Canvas(str(path), pagesize=A4)
+            c.setTitle("Font check")
+            c.drawString(50, 750, "Font status test")
+            c.save()
+            report = inspect_pdf(path)
+            self.assertTrue(report["fonts"])
+            self.assertTrue(any("Font " in warning for warning in report["warnings"]))
+
 
 if __name__ == "__main__":
     unittest.main()
