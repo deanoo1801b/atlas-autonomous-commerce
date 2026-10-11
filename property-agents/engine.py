@@ -132,9 +132,17 @@ LONDON_SE_POSTCODE_PREFIXES = (
 DESIGNATED_AREA_TERMS = ("london", "croydon", "bromley", "lewisham", "greenwich", "bexley", "sutton", "kingston upon thames", "enfield", "harrow", "watford", "dartford", "erith", "romford", "grays", "gravesend", "swanley", "sevenoaks", "brighton", "crawley", "east grinstead", "redhill", "reigate", "guildford", "woking", "chatham", "rochester", "maidstone", "canterbury", "surrey", "kent", "sussex", "essex", "hertfordshire", "berkshire", "hampshire", "buckinghamshire", "oxfordshire")
 
 def geography_status(candidate):
-    """Conservative area gate; requires postcode or explicit place evidence."""
+    """Conservative area gate; malformed postcodes cannot establish geography."""
     postcode = re.sub(r"\s+", "", str(candidate.get("Postcode") or candidate.get("postcode") or "")).upper()
-    match = re.match(r"([A-Z]{1,2})", postcode)
+    # Broad UK postcode shape check; special non-geographic postcodes are not used
+    # to qualify a property location.
+    valid_postcode = bool(re.fullmatch(
+        r"(GIR0AA|[A-PR-UWYZ][0-9][0-9A-HJKSTUW]?|[A-PR-UWYZ][A-HK-Y][0-9][0-9A-HJKSTUW]?|"
+        r"[A-PR-UWYZ][0-9][A-HJKSTUW]|[A-PR-UWYZ][A-HK-Y][0-9][ABEHMNPRVWXY])"
+        r"[0-9][ABDEFGHJLNPQRSTUWXYZ]{2}",
+        postcode,
+    ))
+    match = re.match(r"([A-Z]{1,2})", postcode) if valid_postcode else None
     if match:
         return "In designated area" if match.group(1) in LONDON_SE_POSTCODE_PREFIXES else "Outside designated area"
     text = norm(" ".join(str(candidate.get(k) or "") for k in ("Area", "Address", "Property Address", "Notes")))
@@ -151,10 +159,11 @@ def apply_geography_gate(candidate, motivation):
     candidate["Lead Score"] = "Hot" if motivation >= 70 else ("Warm" if motivation >= 45 else "Cold")
     if status == "Needs location verification":
         candidate["Lead Score"] = "Cold"
-        candidate["Opportunity Evidence"] = (
-            str(candidate.get("Opportunity Evidence") or "")
-            + " Geography not verified; do not shortlist until location is confirmed."
-        ).strip()
+        warning = "Geography not verified; do not shortlist until location is confirmed."
+        evidence = str(candidate.get("Opportunity Evidence") or "").strip()
+        if warning.lower() not in evidence.lower():
+            evidence = (evidence + " " + warning).strip()
+        candidate["Opportunity Evidence"] = evidence
     return candidate
 
 def _stale_band(days):
