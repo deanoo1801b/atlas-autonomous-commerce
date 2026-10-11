@@ -41,9 +41,24 @@ Use a stable product ID and version metadata. Never overwrite an approved final 
 
 ## Current records
 
-- [Collection inventory](research/collection-inventory.md)
+- [Collection inventory and full-scan results](research/collection-inventory.md)
 - [Initial candidate audit](research/candidate-audit.md)
+- [Ranked 20-workflow shortlist](research/ranked-shortlist.md)
+- [Production specification](docs/production-spec.md)
+- [Catalogue schema](docs/catalogue-schema.md)
+- [Compatibility/risk matrix](docs/workflow-compatibility-matrix.md)
+- [Implementation roadmap](docs/implementation-roadmap.md)
+
+## Implemented components
+
+- `src/kkam_pdf_factory/catalogue.py` — SQLite product catalogue and filename convention.
+- `src/kkam_pdf_factory/assemble.py` — deterministic business-PDF and colouring-book assembly.
+- `src/kkam_pdf_factory/qa.py` — technical PDF validation, optional page rendering, duplicate/blank checks, contact sheets and colouring-page pixel heuristics.
+- `src/kkam_pdf_factory/pipeline.py` — fail-closed stage state machine with acceptance criteria and approval references.
+- `src/kkam_pdf_factory/package_manifest.py` — versioned SHA-256 asset manifest.
+- `research/scan_n8n_collection.py` — repeatable read-only static scanner for the complete workflow tree.
+- GitHub Actions workflows run the unit tests and full collection scan.
 
 ## Status
 
-Research is ongoing. The current source repository tree has 2,061 workflow JSON files, despite the README advertising 4,343. The recursive tree was complete and non-truncated. Only a targeted sample of JSON bodies has been audited so far; do not describe the whole collection as fully inspected.
+Research and implementation are ongoing. The current source repository tree has 2,061 workflow JSON files, despite the README advertising 4,343. The recursive tree was complete and non-truncated. Only a targeted sample of JSON bodies has been audited so far; do not describe the whole collection as fully inspected.
