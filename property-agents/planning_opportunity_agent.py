@@ -6,6 +6,7 @@ Never contacts owners or planning authorities.
 """
 from __future__ import annotations
 
+import math
 import os
 import re
 import time
@@ -175,15 +176,21 @@ def development_profit_scenario(asking_price: Any, estimated_completed_value: An
     def number(v):
         try:
             result = float(str(v).replace(",", "").replace("£", "").strip())
-            return result if result >= 0 else None
-        except (TypeError, ValueError):
+            return result if math.isfinite(result) and result >= 0 else None
+        except (TypeError, ValueError, OverflowError):
             return None
     purchase, end_value = number(asking_price), number(estimated_completed_value)
     costs = [number(x) for x in (works_cost, professional_fees, finance_and_holding, purchase_costs, selling_costs)]
-    if purchase is None or end_value is None or any(x is None for x in costs):
-        return {"status": "Incomplete inputs - no profit estimate published", "estimated_net_profit": None}
+    try:
+        contingency_rate = float(contingency_pct)
+    except (TypeError, ValueError, OverflowError):
+        contingency_rate = math.nan
+    if (purchase is None or purchase <= 0 or end_value is None or end_value <= 0
+            or any(x is None for x in costs)
+            or not math.isfinite(contingency_rate) or contingency_rate < 0 or contingency_rate > 100):
+        return {"status": "Incomplete or invalid inputs - no profit estimate published", "estimated_net_profit": None}
     works, fees, finance, acquisition, selling = costs
-    contingency = works * max(0.0, float(contingency_pct)) / 100
+    contingency = works * contingency_rate / 100
     total_cost = purchase + works + fees + finance + acquisition + selling + contingency
     return {
         "status": "Illustrative only - planning, valuation and all costs require verification",
