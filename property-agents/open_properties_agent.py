@@ -91,6 +91,11 @@ def discover_open_properties() -> list[dict[str, Any]]:
         items, success = _run(location)
         if not success:
             _LAST_SCAN_COMPLETE = False
+        # A malformed provider payload makes the scan incomplete; do not let
+        # an unexpected item shape reach identity/deduplication logic.
+        if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
+            _LAST_SCAN_COMPLETE = False
+            continue
         for item in items:
             provider = str(item.get("portal") or "open-properties").strip().lower()
             listing_id = str(item.get("id") or "").strip().lower()
