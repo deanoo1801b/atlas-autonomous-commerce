@@ -137,9 +137,8 @@ def geography_status(candidate):
     # Broad UK postcode shape check; special non-geographic postcodes are not used
     # to qualify a property location.
     valid_postcode = bool(re.fullmatch(
-        r"(GIR0AA|[A-PR-UWYZ][0-9][0-9A-HJKSTUW]?|[A-PR-UWYZ][A-HK-Y][0-9][0-9A-HJKSTUW]?|"
-        r"[A-PR-UWYZ][0-9][A-HJKSTUW]|[A-PR-UWYZ][A-HK-Y][0-9][ABEHMNPRVWXY])"
-        r"[0-9][ABDEFGHJLNPQRSTUWXYZ]{2}",
+        r"(?:GIR0|[A-PR-UWYZ][0-9][0-9A-HJKSTUW]?|"
+        r"[A-PR-UWYZ][A-HK-Y][0-9][0-9ABEHMNPRV-Y]?)[0-9][ABDEFGHJLNPQRSTUWXYZ]{2}",
         postcode,
     ))
     match = re.match(r"([A-Z]{1,2})", postcode) if valid_postcode else None
