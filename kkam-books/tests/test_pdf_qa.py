@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from kkam_pdf_factory.qa import inspect_pdf
+from kkam_pdf_factory.qa import analyse_colouring_pages, create_contact_sheet, inspect_pdf
 
 
 def make_pdf(path: Path, pages, pagesize=None):
@@ -75,6 +75,38 @@ class PdfQaTests(unittest.TestCase):
             report = inspect_pdf(path, render_pages=True)
             self.assertEqual(report["technical_status"], "failed")
             self.assertIn("render_dir is required when render_pages=True.", report["errors"])
+
+    def test_contact_sheet_is_created(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            from PIL import Image, ImageDraw
+            root = Path(tmp)
+            page = root / "page-0001.png"
+            image = Image.new("RGB", (200, 300), "white")
+            ImageDraw.Draw(image).ellipse((40, 40, 160, 200), outline="black", width=3)
+            image.save(page)
+            output = create_contact_sheet([page], root / "contact.png", columns=1)
+            self.assertTrue(output.is_file())
+
+    def test_colouring_page_heuristics_flag_blank_page(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            from PIL import Image
+            root = Path(tmp)
+            blank = root / "blank.png"
+            Image.new("RGB", (200, 300), "white").save(blank)
+            report = analyse_colouring_pages([blank])
+            self.assertEqual(report["overall_status"], "needs-review")
+            self.assertIn("too-little-line-art-or-near-blank", report["pages"][0]["flags"])
+
+    def test_colouring_page_heuristics_flag_grey_background(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            from PIL import Image, ImageDraw
+            root = Path(tmp)
+            gray = root / "gray.png"
+            image = Image.new("RGB", (200, 300), (220, 220, 220))
+            ImageDraw.Draw(image).ellipse((40, 40, 160, 200), outline="black", width=3)
+            image.save(gray)
+            report = analyse_colouring_pages([gray])
+            self.assertIn("background-not-clean-white", report["pages"][0]["flags"])
 
 
 if __name__ == "__main__":
