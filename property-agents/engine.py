@@ -244,7 +244,7 @@ def _price(v):
         amount = float(str(v).replace(",", "").replace("£", "").strip())
     except (TypeError, ValueError, OverflowError):
         return None
-    return amount if math.isfinite(amount) else None
+    return amount if math.isfinite(amount) and amount > 0 else None
 
 def _history(v):
     try:
