@@ -17,6 +17,11 @@ class OpenPropertiesDeduplicationTests(unittest.TestCase):
             "https://rightmove.co.uk/property/123",
         )
 
+    def test_malformed_port_is_not_accepted_as_canonical_source_url(self):
+        self.assertIsNone(
+            agent._canonical_source_url("https://rightmove.co.uk:invalid/property/123")
+        )
+
     def test_duplicate_canonical_url_is_dropped_across_search_areas(self):
         first = {"id": "A1", "portal": "rightmove", "url": "https://example.test/listing/1/?utm=x"}
         second = {"id": "A2", "portal": "rightmove", "url": "https://example.test/listing/1"}
