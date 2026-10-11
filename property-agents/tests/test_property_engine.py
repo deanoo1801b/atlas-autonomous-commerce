@@ -25,6 +25,9 @@ class GeographyTests(unittest.TestCase):
     def test_missing_geography_requires_review(self):
         self.assertEqual(geography_status({"Area": "Unknown"}), "Needs location verification")
 
+    def test_invalid_postcode_does_not_prove_geography(self):
+        self.assertEqual(geography_status({"Postcode": "NOTVALID", "Area": "Unknown"}), "Needs location verification")
+
     def test_missing_geography_cannot_become_hot_or_warm(self):
         candidate = {"Area": "Unknown", "Opportunity Evidence": "Public listing"}
         apply_geography_gate(candidate, 95)
