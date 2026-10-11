@@ -27,13 +27,14 @@ REPO = "n8n-workflows"
 BRANCH = "main"
 API_TREE = f"https://api.github.com/repos/{OWNER}/{REPO}/git/trees/{BRANCH}?recursive=1"
 RAW_ROOT = f"https://raw.githubusercontent.com/{OWNER}/{REPO}/{BRANCH}/"
-TERMS = re.compile(
-    r"pdf|document|convert|markdown|docx|image|illustrat|resize|background|"
-    r"google.?drive|sheets|airtable|shopify|openai|gemini|claude|report|content|"
-    r"notion|email|schedule|error|approval|wait|readpdf|extractfromfile|"
-    r"converttofile|editimage|writebinaryfile|readwritefile|compression",
-    re.I,
-)
+KEYWORD_GROUPS = {
+    "pdf_document": ["pdf", "html to pdf", "markdown to pdf", "docx", "document generation", "report generation", "merge pdf", "split pdf", "pdf metadata", "readpdf", "extractfromfile", "converttofile"],
+    "illustration_image": ["image generation", "image edit", "editimage", "line art", "black and white", "background removal", "resize", "upscale", "image processing", "image metadata"],
+    "content_production": ["content generation", "story", "worksheet", "prompt", "markdown", "template", "summarization", "exam questions"],
+    "catalogue_storage": ["google drive", "googledrive", "google sheets", "googlesheets", "airtable", "onedrive", "shopify", "database", "postgres", "writebinaryfile", "readwritefile"],
+    "commercial_distribution": ["shopify", "product listing", "seo", "publish", "gumroad", "woocommerce", "wordpress", "email marketing", "social media"],
+    "automation_reliability": ["schedule", "cron", "error", "stopanderror", "approval", "human review", "retry", "wait", "execute workflow", "webhook"],
+}
 SUSPICIOUS_TYPES = ("executeCommand", "ssh", "readWriteFile", "writeBinaryFile", "delete", "httpRequest")
 
 
@@ -70,6 +71,11 @@ def audit_workflow(path: str) -> dict[str, Any]:
         "source_url": RAW_ROOT + path,
         "json_valid": False,
         "name": "",
+        "description": "",
+        "file_category": path.split("/")[1] if "/" in path else "",
+        "node_names": "",
+        "matched_keyword_groups": "",
+        "matched_keywords": "",
         "node_count": 0,
         "edge_count": 0,
         "dangling_connection_count": 0,
@@ -102,6 +108,7 @@ def audit_workflow(path: str) -> dict[str, Any]:
         node_objects = [n for n in nodes if isinstance(n, dict)]
         types = [str(n.get("type", "")) for n in node_objects]
         node_names = {str(n.get("name", "")) for n in node_objects}
+        node_names_list = sorted(node_names)
         node_ids = {str(n.get("id", "")) for n in node_objects if n.get("id")}
         dangling_sources = sorted(source for source in connections if source not in node_names and source not in node_ids)
         dangling_targets = set()
@@ -122,16 +129,25 @@ def audit_workflow(path: str) -> dict[str, Any]:
         dangling_count = len(dangling_sources) + len(dangling_targets)
         creds = sorted({key for n in node_objects for key in (n.get("credentials") or {}).keys()})
         urls, hard_ids = set(), set()
+        searchable_parts = [path, str(data.get("name") or ""), str(data.get("description") or "")]
         for node in nodes:
             if not isinstance(node, dict):
                 continue
             params = node.get("parameters") or {}
             serialized = json.dumps(params, ensure_ascii=False)
+            searchable_parts.extend([str(node.get("name", "")), str(node.get("notes", "")), serialized])
             urls.update(re.findall(r"https?://[^\s\"'<>]+", serialized))
             hard_ids.update(re.findall(r"(?<![A-Za-z0-9])(?:[A-Za-z0-9_-]{18,}|[A-Z0-9]{20,})(?![A-Za-z0-9])", serialized))
+        searchable_text = " ".join(searchable_parts).lower()
+        keyword_hits = {group: [term for term in terms if term.lower() in searchable_text] for group, terms in KEYWORD_GROUPS.items()}
+        keyword_hits = {group: hits for group, hits in keyword_hits.items() if hits}
         row.update({
             "json_valid": True,
             "name": str(data.get("name") or ""),
+            "description": str(data.get("description") or (data.get("meta") or {}).get("description") or ""),
+            "node_names": ";".join(node_names_list),
+            "matched_keyword_groups": ";".join(keyword_hits),
+            "matched_keywords": ";".join(sorted({term for hits in keyword_hits.values() for term in hits})),
             "node_count": len(nodes),
             "edge_count": count_edges(connections),
             "dangling_connection_count": dangling_count,
@@ -197,6 +213,7 @@ def main() -> int:
         "scanned": len(rows),
         "valid_json": sum(r["json_valid"] for r in rows),
         "failed_download_or_parse": sum(not r["json_valid"] for r in rows),
+        "keyword_group_counts": {group: sum(group in r["matched_keyword_groups"].split(";") for r in rows) for group in KEYWORD_GROUPS},
         "files_with_noop": sum(r["no_op_count"] > 0 for r in rows),
         "files_with_dangling_connections": sum(r["dangling_connection_count"] > 0 for r in rows),
         "total_dangling_connection_references": sum(r["dangling_connection_count"] for r in rows),
