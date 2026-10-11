@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlsplit
 from contract_route_comparator import compare_routes
+from planning_opportunity_agent import development_profit_scenario
 
 def _comparable_sales_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
     """Validate structured sold-comparable evidence; raw counts alone never verify comparables."""
@@ -182,6 +183,16 @@ def build_review_queue(candidates: list[dict[str, Any]], scan_id: str = "UNASSIG
     for candidate in candidates:
         result = compare_routes(candidate_to_route_input(candidate))
         comparable_evidence = _comparable_sales_evidence(candidate)
+        # Scenario is included only when every cost input is present and valid.
+        development_profit = development_profit_scenario(
+            candidate.get("Asking Price") or candidate.get("Current Asking Price"),
+            candidate.get("Estimated Completed Value") or candidate.get("Post-Works Market Value") or candidate.get("Estimated Market Value After Works"),
+            candidate.get("Estimated Works Cost") or candidate.get("Works Cost"),
+            candidate.get("Professional Fees"),
+            candidate.get("Finance and Holding Costs"),
+            candidate.get("Purchase Costs"),
+            candidate.get("Selling Costs"),
+        )
         records.append({
             "deal_id": result["deal_id"],
             "area": candidate.get("Area") or candidate.get("Property Address") or candidate.get("Address"),
@@ -197,6 +208,7 @@ def build_review_queue(candidates: list[dict[str, Any]], scan_id: str = "UNASSIG
                 result["market_value_discount_pct"], comparable_evidence["valid_count"]
             ),
             "comparable_evidence": comparable_evidence,
+            "development_profit_scenario": development_profit,
             "routes": result["routes"],
             "automatic_commitment": False, "automatic_contacting": False,
             "automatic_offer": False, "automatic_contracting": False,
@@ -226,6 +238,41 @@ def write_review_queue(candidates: list[dict[str, Any]], scan_id: str, path: str
         fh.write("\n")
     write_review_html(report)
     return report
+
+
+def _profit_scenario_html(scenario: dict[str, Any], esc) -> str:
+    """Render transparent development economics; incomplete inputs never show a profit figure."""
+    if not isinstance(scenario, dict):
+        scenario = {}
+    profit = scenario.get("estimated_net_profit_before_tax")
+    if profit is None:
+        status = scenario.get("status") or "Incomplete inputs - no profit estimate published"
+        return f"<p><strong>Development scenario:</strong> {esc(status)}</p>"
+    labels = (
+        ("Purchase price", "purchase_price"),
+        ("Works cost", "works_cost"),
+        ("Contingency", "contingency"),
+        ("Professional fees", "professional_fees"),
+        ("Finance and holding", "finance_and_holding"),
+        ("Purchase costs", "purchase_costs"),
+        ("Selling costs", "selling_costs"),
+        ("Total project cost", "estimated_total_cost"),
+        ("Completed value assumption", "estimated_completed_value"),
+        ("Net profit before tax (illustrative)", "estimated_net_profit_before_tax"),
+        ("Margin on completed value", "estimated_margin_on_end_value_pct"),
+    )
+    rows = []
+    for label, key in labels:
+        value = scenario.get(key)
+        if value is None:
+            continue
+        rendered = f"{value:.2f}%" if key == "estimated_margin_on_end_value_pct" else f"£{value:,.2f}"
+        rows.append(f"<tr><th>{esc(label)}</th><td>{esc(rendered)}</td></tr>")
+    return (
+        "<details><summary>Illustrative development economics</summary>"
+        "<p>Scenario only; inputs and valuation require independent evidence.</p>"
+        f"<table><tbody>{''.join(rows)}</tbody></table></details>"
+    )
 
 
 def render_review_html(report: dict[str, Any]) -> str:
@@ -311,7 +358,8 @@ def render_review_html(report: dict[str, Any]) -> str:
             f"<br><strong>{esc(record.get('lead_channel'))}</strong><br>{esc(record.get('lead_channel_reason'))}</td>"
             f"<td>{esc(record.get('asking_price'))}<br>Discount: {esc(discount_text)}"
             f"<br>BMV review: <strong>{esc(record.get('bmv_review_tier'))}</strong>"
-            f"<br>{esc(record.get('valuation_status'))}</td>"
+            f"<br>{esc(record.get('valuation_status'))}"
+            f"{_profit_scenario_html(record.get('development_profit_scenario', {}), esc)}</td>"
             f"<td>{source_link}</td>{evidence_cell}{''.join(route_cells)}"
             "</tr>"
         )
