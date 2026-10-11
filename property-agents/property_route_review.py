@@ -2,6 +2,7 @@
 from __future__ import annotations
 import html, json, os
 from datetime import datetime, timezone
+import math
 from typing import Any
 from urllib.parse import urlsplit
 from contract_route_comparator import compare_routes
@@ -139,7 +140,8 @@ def _prioritise_record(record: dict[str, Any]) -> dict[str, Any]:
     else:
         reasons.append("No valid HTTPS source link")
     comparable_evidence = record.get("comparable_evidence", {})
-    if (isinstance(discount, (int, float))
+    if (isinstance(discount, (int, float)) and not isinstance(discount, bool)
+        and math.isfinite(discount)
         and comps_status == "supported_by_minimum_count_only_not_valued_by_this_module"
         and comparable_evidence.get("valid_count", 0) >= 3):
         score += 20
@@ -167,9 +169,10 @@ def _bmv_review_tier(discount: Any, valid_comparable_count: Any) -> str:
     """Assign a preliminary BMV band only after three distinct recent comparable records pass format checks."""
     try:
         count = int(valid_comparable_count or 0)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         count = 0
-    if not isinstance(discount, (int, float)) or count < 3:
+    if (not isinstance(discount, (int, float)) or isinstance(discount, bool)
+            or not math.isfinite(discount) or count < 3):
         return "REVIEW_REQUIRED — insufficient valuation evidence"
     if discount >= 30:
         return "PRIORITY_A_CANDIDATE — 30%+ discount; human verification required"
