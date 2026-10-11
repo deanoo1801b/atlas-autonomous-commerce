@@ -155,9 +155,9 @@ class PropertyRouteReviewTests(unittest.TestCase):
         from datetime import datetime, timezone, timedelta
         sold = (datetime.now(timezone.utc).date() - timedelta(days=30)).isoformat()
         comps = [
-            {"sold_price": 185000, "sale_date": sold, "source_url": "https://example.test/sold/1",
+            {"sold_price": 185000, "sale_date": sold, "source_url": "https://example.test/sold/1?utm_source=portal#details",
              "postcode": "CR0 1AA", "property_type": "terraced"},
-            {"sold_price": 195000, "sale_date": sold, "source_url": "https://example.test/sold/1/",
+            {"sold_price": 195000, "sale_date": sold, "source_url": "https://www.example.test/sold/1/:443/",
              "postcode": "CR0 1AA", "property_type": "terraced"},
             {"sold_price": 205000, "sale_date": sold, "source_url": "https://example.test/sold/3",
              "postcode": "CR0 1AA", "property_type": "terraced"},
