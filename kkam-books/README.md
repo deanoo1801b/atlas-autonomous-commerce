@@ -62,3 +62,40 @@ Use a stable product ID and version metadata. Never overwrite an approved final 
 ## Status
 
 Research and implementation are ongoing. The current source repository tree has 2,061 workflow JSON files, despite the README advertising 4,343. The recursive tree was complete and non-truncated. Only a targeted sample of JSON bodies has been audited so far; do not describe the whole collection as fully inspected.
+
+
+## Run the factory locally
+
+From the repository root, install the open-source PDF tools and set the package path:
+
+```bash
+pip install -r kkam-books/requirements-optional.txt
+export PYTHONPATH=kkam-books/src
+python -m kkam_pdf_factory.cli --help
+```
+
+Build a professional business PDF:
+
+```bash
+python -m kkam_pdf_factory.cli build-business --spec product-spec.json --output output/01-KKAM-Sample.pdf
+```
+
+Assemble a colouring book from approved local PNG/JPEG assets:
+
+```bash
+python -m kkam_pdf_factory.cli build-colouring --spec colouring-spec.json --output output/02-KKAM-Animals.pdf
+```
+
+Run technical QA and render every page:
+
+```bash
+python -m kkam_pdf_factory.cli qa --pdf output/01-KKAM-Sample.pdf --trim-size A4 --render-dir output/renders --report output/qa/technical-report.json
+```
+
+Create a checksummed package manifest:
+
+```bash
+python -m kkam_pdf_factory.cli manifest --product-id KKAM-0001 --version 1.0.0 --files output/01-KKAM-Sample.pdf output/qa/technical-report.json --output output/manifest.json
+```
+
+The CLI returns a non-zero exit code for failed technical QA. Rendering creates evidence for review; it does not automatically approve the visual quality of the product.
