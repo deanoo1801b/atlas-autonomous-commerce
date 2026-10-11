@@ -20,6 +20,7 @@ import urllib.request
 from collections import Counter
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 OWNER = "Zie619"
 REPO = "n8n-workflows"
@@ -87,7 +88,7 @@ def audit_workflow(path: str) -> dict[str, Any]:
         "error": "",
     }
     try:
-        data = fetch_json(RAW_ROOT + path)
+        data = fetch_json(RAW_ROOT + quote(path, safe="/"))
         if not isinstance(data, dict):
             raise ValueError("workflow root is not an object")
         nodes = data.get("nodes", [])
