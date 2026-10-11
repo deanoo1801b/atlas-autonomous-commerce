@@ -6,15 +6,20 @@ import open_properties_agent as agent
 
 class OpenPropertiesDeduplicationTests(unittest.TestCase):
     def test_provider_json_array_is_rejected_as_incomplete_payload(self):
+        def fake_run(cmd, **kwargs):
+            with open(cmd[-1], "w", encoding="utf-8") as handle:
+                handle.write("[]")
+            class Result:
+                returncode = 0
+                stdout = ""
+                stderr = ""
+            return Result()
+
         with patch.object(agent.shutil, "which", return_value="/usr/bin/property"), \
-             patch.object(agent.subprocess, "run") as run:
-            run.return_value.returncode = 0
-            run.return_value.stdout = ""
-            run.return_value.stderr = ""
-            with patch("builtins.open", side_effect=AssertionError("unexpected open")):
-                # _run reads the provider-created temporary JSON file; malformed
-                # payload shape is covered through the discovery guard separately.
-                self.assertTrue(callable(agent._run))
+             patch.object(agent.subprocess, "run", side_effect=fake_run):
+            properties, success = agent._run("Croydon")
+        self.assertEqual(properties, [])
+        self.assertFalse(success)
 
     def test_canonical_url_removes_tracking_and_trailing_slash(self):
         self.assertEqual(
