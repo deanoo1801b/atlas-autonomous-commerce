@@ -144,8 +144,11 @@ def geography_status(candidate):
     match = re.match(r"([A-Z]{1,2})", postcode) if valid_postcode else None
     if match:
         return "In designated area" if match.group(1) in LONDON_SE_POSTCODE_PREFIXES else "Outside designated area"
-    text = norm(" ".join(str(candidate.get(k) or "") for k in ("Area", "Address", "Property Address", "Notes")))
-    if any(term in text for term in DESIGNATED_AREA_TERMS):
+    # Only the dedicated Area field can establish a named-place fallback.
+    # Address lines and free-text notes may mention a road or nearby town and are
+    # not reliable proof of the property's locality.
+    area = norm(candidate.get("Area") or "")
+    if any(re.search(r"(?<![a-z])" + re.escape(term) + r"(?![a-z])", area) for term in DESIGNATED_AREA_TERMS):
         return "In designated area"
     return "Needs location verification"
 
