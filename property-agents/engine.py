@@ -1,4 +1,4 @@
-import os, re, hashlib, time, json
+import os, re, hashlib, time, json, math
 from datetime import datetime, timezone
 from urllib.parse import urlsplit, urlunsplit
 import requests
@@ -237,10 +237,14 @@ def _miss_count(v):
         return 0
 
 def _price(v):
-    try:
-        return float(str(v).replace(",", "").replace("£", "").strip())
-    except (TypeError, ValueError):
+    # Reject booleans and non-finite numbers; neither is a valid monetary amount.
+    if isinstance(v, bool):
         return None
+    try:
+        amount = float(str(v).replace(",", "").replace("£", "").strip())
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return amount if math.isfinite(amount) else None
 
 def _history(v):
     try:
