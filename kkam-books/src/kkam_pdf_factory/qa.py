@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,9 @@ def inspect_pdf(
         "page_sizes_points": [],
         "metadata": {},
         "rendered_pages": [],
+        "blank_rendered_pages": [],
+        "duplicate_rendered_pages": [],
+        "fonts": [],
     }
     if not path.is_file():
         report["errors"].append("PDF file does not exist.")
@@ -83,6 +87,33 @@ def inspect_pdf(
         if not meta or not meta.title:
             report["warnings"].append("PDF title metadata is missing.")
 
+        try:
+            import fitz
+            font_doc = fitz.open(str(path))
+            seen_fonts = set()
+            for page_index, page in enumerate(font_doc, start=1):
+                for font in page.get_fonts(full=True):
+                    xref = int(font[0])
+                    basefont = str(font[3])
+                    key = (xref, basefont)
+                    if key in seen_fonts:
+                        continue
+                    seen_fonts.add(key)
+                    embedded = False
+                    if xref > 0:
+                        try:
+                            embedded = bool(font_doc.extract_font(xref)[3])
+                        except Exception:
+                            embedded = False
+                    report["fonts"].append({"page": page_index, "name": basefont, "xref": xref, "embedded": embedded})
+                    if not embedded:
+                        report["warnings"].append(f"Font {basefont} could not be confirmed as embedded; review before print production.")
+            font_doc.close()
+        except ImportError:
+            report["warnings"].append("PyMuPDF not installed; embedded-font inspection skipped.")
+        except Exception as exc:
+            report["warnings"].append(f"Font inspection could not complete: {type(exc).__name__}: {exc}")
+
         if render_pages:
             if render_dir is None:
                 report["errors"].append("render_dir is required when render_pages=True.")
@@ -95,14 +126,26 @@ def inspect_pdf(
                     output = Path(render_dir)
                     output.mkdir(parents=True, exist_ok=True)
                     doc = fitz.open(str(path))
+                    rendered_hashes: dict[str, int] = {}
                     for index, page in enumerate(doc, start=1):
                         image_path = output / f"page-{index:04d}.png"
                         pix = page.get_pixmap(matrix=fitz.Matrix(1.5, 1.5), alpha=False)
                         pix.save(str(image_path))
                         report["rendered_pages"].append(str(image_path))
+                        digest = hashlib.sha256(pix.samples).hexdigest()
+                        if digest in rendered_hashes:
+                            report["duplicate_rendered_pages"].append({"page": index, "matches_page": rendered_hashes[digest]})
+                        else:
+                            rendered_hashes[digest] = index
+                        if pix.samples and all(value >= 250 for value in pix.samples):
+                            report["blank_rendered_pages"].append(index)
                     doc.close()
+                    if report["duplicate_rendered_pages"]:
+                        report["warnings"].append("Exact duplicate rendered pages detected; review before approval.")
+                    if report["blank_rendered_pages"]:
+                        report["warnings"].append("Blank or near-blank rendered pages detected; review before approval.")
                     report["visual_status"] = "rendered-needs-review"
-                    report["warnings"].append("Pages were rendered; human or vision-based visual review is still required.")
+                    report["warnings"].append("Pages were rendered; clipping, spelling, illustration quality and colouring-area suitability still require visual review.")
         report["technical_status"] = "passed" if not report["errors"] else "failed"
         return report
     except Exception as exc:
