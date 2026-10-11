@@ -220,7 +220,7 @@ def finance_ready(v):
         v.get("Source URL") or v.get("Opportunity Evidence")
     ) and _price(v.get("Asking Price")) is not None
     status = norm(v.get("Listing Status") or "Unknown")
-    listing_available = status not in {"removed", "withdrawn", "sold", "completed", "unavailable"}
+    listing_available = status in {"active", "relisted"}
     return compliance_status != "Red" and evidence_ready and listing_available
 
 
