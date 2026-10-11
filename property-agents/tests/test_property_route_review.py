@@ -6,6 +6,18 @@ class PropertyRouteReviewTests(unittest.TestCase):
         mapped = candidate_to_route_input({"Lead ID":"IP-1","Asking Price":140000})
         self.assertIsNone(mapped["estimated_market_value"])
         self.assertEqual(mapped["comparable_sales_count"], 0)
+    def test_malformed_source_urls_cannot_support_direct_owner_claim(self):
+        from property_route_review import _lead_channel_review
+        for url in ("https://", "https:// bad.example/listing", "https://example.test:bad/path", "javascript:alert(1)", "//example.test/listing"):
+            with self.subTest(url=url):
+                result = _lead_channel_review({
+                    "Source": "direct owner",
+                    "Lead Type": "Direct Owner",
+                    "Owner Direct": True,
+                    "Source URL": url,
+                })
+                self.assertEqual(result["lead_channel"], "UNVERIFIED_CHANNEL_REQUIRES_REVIEW")
+
     def test_missing_source_url_cannot_be_classified_as_direct_owner(self):
         record = build_review_queue([{
             "Lead ID": "IP-NO-URL",
