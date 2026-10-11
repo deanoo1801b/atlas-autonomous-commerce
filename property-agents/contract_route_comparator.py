@@ -5,6 +5,7 @@ authorises outreach, offers, signing, payments, referrals or publishing.
 """
 from __future__ import annotations
 
+import math
 from typing import Any
 
 
@@ -13,9 +14,9 @@ def _money(value: Any) -> float | None:
         return None
     try:
         number = float(str(value).replace(",", "").replace("£", "").strip())
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
-    return number if number >= 0 else None
+    return number if math.isfinite(number) and number >= 0 else None
 
 
 def _yes(value: Any) -> bool:
@@ -40,8 +41,11 @@ def compare_routes(deal: dict[str, Any]) -> dict[str, Any]:
     if not evidence_url.startswith("https://"):
         risks.append("Missing HTTPS source evidence; independently verify the property and source.")
     try:
-        comparable_count = int(deal.get("comparable_sales_count") or 0)
-    except (TypeError, ValueError):
+        raw_count = deal.get("comparable_sales_count")
+        comparable_count = int(raw_count or 0)
+        if isinstance(raw_count, bool) or comparable_count < 0 or str(raw_count).strip() not in {str(comparable_count), f"+{comparable_count}"}:
+            comparable_count = 0
+    except (TypeError, ValueError, OverflowError):
         comparable_count = 0
     if comparable_count < 3:
         risks.append("Fewer than three comparable sold transactions: valuation/discount remains unsubstantiated.")
