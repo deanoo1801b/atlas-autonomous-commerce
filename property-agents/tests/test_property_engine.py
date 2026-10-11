@@ -31,6 +31,9 @@ class GeographyTests(unittest.TestCase):
     def test_address_or_notes_mention_does_not_establish_area(self):
         self.assertEqual(geography_status({"Area": "Unknown", "Address": "10 Kent Road", "Notes": "Near Brighton"}), "Needs location verification")
 
+    def test_street_name_in_area_field_does_not_prove_locality(self):
+        self.assertEqual(geography_status({"Area": "10 Brighton Road", "Postcode": ""}), "Needs location verification")
+
     def test_missing_geography_cannot_become_hot_or_warm(self):
         candidate = {"Area": "Unknown", "Opportunity Evidence": "Public listing"}
         apply_geography_gate(candidate, 95)
