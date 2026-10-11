@@ -28,7 +28,7 @@ class PropertyRouteReviewTests(unittest.TestCase):
 
     def test_direct_owner_claim_is_not_treated_as_verified(self):
         report = build_review_queue([{
-            "Lead ID": "IP-OWNER", "Lead Type": "Direct Owner", "Owner Direct": True
+            "Lead ID": "IP-OWNER", "Lead Type": "Direct Owner", "Owner Direct": True, "Source URL": "https://example.test/owner-submission"
         }], "SCAN-OWNER")
         record = report["records"][0]
         self.assertEqual(record["lead_channel"], "DIRECT_OWNER_CLAIM_REQUIRES_VERIFICATION")
