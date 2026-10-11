@@ -1,0 +1,55 @@
+name: KKAM n8n Collection Static Audit
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "kkam-books/research/scan_n8n_collection.py"
+      - ".github/workflows/kkam-n8n-collection-audit.yml"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Maximum workflows to scan (0 = all)"
+        required: false
+        default: "0"
+
+permissions:
+  contents: read
+
+jobs:
+  scan-public-workflows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Scan workflow JSON bodies (read-only; never execute)
+        env:
+          SCAN_LIMIT: ${{ github.event.inputs.limit || '0' }}
+        run: |
+          mkdir -p /tmp/kkam-n8n-audit
+          python kkam-books/research/scan_n8n_collection.py --limit "$SCAN_LIMIT" --workers 8 --out /tmp/kkam-n8n-audit
+      - name: Add audit summary
+        if: always()
+        run: |
+          if [ -f /tmp/kkam-n8n-audit/workflow-audit.json ]; then
+            python - <<'PY'
+          import json, os
+          p='/tmp/kkam-n8n-audit/workflow-audit.json'
+          d=json.load(open(p, encoding='utf-8'))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
+              f.write('# KKAM n8n collection static audit\n\n')
+              for k in ('tree_sha','workflow_json_paths','scanned','valid_json','failed_download_or_parse','files_with_noop','files_with_shell_nodes','files_with_http_nodes','files_with_error_handler','files_with_write_side_effects'):
+                  f.write(f'- **{k}:** {d.get(k)}\n')
+              f.write('\nThis is static inspection only. No workflow was imported or executed.\n')
+          PY
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kkam-n8n-static-audit
+          path: /tmp/kkam-n8n-audit/
+          if-no-files-found: warn
+          retention-days: 30
