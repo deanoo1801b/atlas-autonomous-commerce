@@ -11,22 +11,28 @@
 - [x] Fail-closed production stage state machine.
 - [x] Approval references required for concept approval, final approval and publishing.
 - [x] Unit tests and GitHub Actions CI workflow.
-- [ ] Verify current CI result after latest dependency and QA updates.
-- [ ] Complete whole-collection static audit and retain its output as a versioned report.
+- [x] Verify CI after dependency and QA updates: 30 unit tests passed in the latest run.
+- [x] Complete whole-collection static audit: 2,061/2,061 JSON files parsed; summary committed and full CSV/JSON uploaded as a 30-day artifact.
 
-## Milestone 2 — PDF build engine
+## Milestone 2 — PDF build engine (partially implemented)
 
-- Add deterministic HTML/Markdown-to-PDF templates using ReportLab or HTML/CSS renderer after choosing the layout path.
+- [x] Add deterministic ReportLab templates for structured business PDFs and one-approved-image-per-page colouring books.
+- [x] Add CLI commands for building, QA, catalogue upsert and package manifests.
+- [ ] Add deterministic HTML/CSS-to-PDF templates if richer layouts require them.
 - Add page-order manifest and asset provenance manifest.
 - Add cover/interior assembly and trim-size presets.
 - Add print DPI checks for raster assets and margin checks.
 - Add valid sample PDFs and golden-file regression tests.
 
-## Milestone 3 — Visual QA
+## Milestone 3 — Visual QA (partially implemented)
 
-- Render every page and produce a contact sheet.
-- Detect blank/near-blank pages, exact duplicates, low-contrast pages and content outside safe margins.
-- Add optional computer-vision review for colouring-page line-art quality.
+- [x] Render every page and produce a contact sheet.
+- [x] Detect exact duplicate renders, blank/near-blank pages, low-resolution images and basic colouring-page pixel anomalies.
+- [ ] Add stronger clipping/margin and illustration line-art analysis.
+- [x] Detect blank/near-blank pages and exact duplicates.
+- [x] Add pixel-ratio heuristics for white background, line density and midtone/shading flags.
+- [ ] Detect low contrast and content outside safe margins with stronger geometry/image analysis.
+- [ ] Add optional computer-vision review for colouring-page line-art quality.
 - Keep visual QA as needs-review until all pages have a review record; a render alone is not approval.
 
 ## Milestone 4 — Content and illustration agents
