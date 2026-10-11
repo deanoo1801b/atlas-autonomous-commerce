@@ -148,7 +148,12 @@ def geography_status(candidate):
     # Address lines and free-text notes may mention a road or nearby town and are
     # not reliable proof of the property's locality.
     area = norm(candidate.get("Area") or "")
-    if any(re.search(r"(?<![a-z])" + re.escape(term) + r"(?![a-z])", area) for term in DESIGNATED_AREA_TERMS):
+    # If Area is actually an address (contains a street/house number), do not
+    # infer locality from road names such as "Brighton Road" or "Kent Street".
+    if area and not re.search(r"\d", area) and any(
+        re.search(r"(?<![a-z])" + re.escape(term) + r"(?![a-z])", area)
+        for term in DESIGNATED_AREA_TERMS
+    ):
         return "In designated area"
     return "Needs location verification"
 
