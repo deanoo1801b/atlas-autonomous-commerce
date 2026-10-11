@@ -53,8 +53,12 @@ def _run(location: str) -> tuple[list[dict[str, Any]], bool]:
             payload = json.load(tmp)
         except (OSError, json.JSONDecodeError):
             return [], False
-    properties = payload.get("properties", [])
-    return (properties, True) if isinstance(properties, list) else ([], False)
+    if not isinstance(payload, dict):
+        return [], False
+    properties = payload.get("properties")
+    if not isinstance(properties, list):
+        return [], False
+    return properties, True
 
 def _canonical_source_url(value: Any) -> str | None:
     """Normalize listing URLs without query/fragment tracking noise."""
