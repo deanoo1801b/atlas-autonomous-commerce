@@ -6,6 +6,17 @@ class PropertyRouteReviewTests(unittest.TestCase):
         mapped = candidate_to_route_input({"Lead ID":"IP-1","Asking Price":140000})
         self.assertIsNone(mapped["estimated_market_value"])
         self.assertEqual(mapped["comparable_sales_count"], 0)
+    def test_missing_source_url_cannot_be_classified_as_direct_owner(self):
+        record = build_review_queue([{
+            "Lead ID": "IP-NO-URL",
+            "Source": "direct owner",
+            "Lead Type": "Direct Owner",
+            "Owner Direct": True,
+            "Asking Price": 140000,
+        }], "SCAN-NO-URL")["records"][0]
+        self.assertEqual(record["lead_channel"], "UNVERIFIED_CHANNEL_REQUIRES_REVIEW")
+        self.assertIn("source URL", record["lead_channel_reason"])
+
     def test_agent_listings_are_market_intelligence_not_direct_owner_leads(self):
         report = build_review_queue([{
             "Lead ID": "OP-123", "Lead Type": "Open Market Listing",
