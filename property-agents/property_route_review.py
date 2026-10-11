@@ -90,12 +90,28 @@ def _comparable_sales_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
             "reasons": reasons}
 
 
+def _valid_source_url(value: Any) -> bool:
+    """Require an absolute HTTP(S) URL with a hostname; do not treat it as ownership proof."""
+    try:
+        url = urlsplit(str(value or "").strip())
+        return (
+            url.scheme.lower() in {"http", "https"}
+            and bool(url.hostname)
+            and not any(char.isspace() for char in str(value or "").strip())
+            and url.username is None
+            and url.password is None
+            and url.port != 0
+        )
+    except (TypeError, ValueError):
+        return False
+
+
 def _lead_channel_review(candidate: dict[str, Any]) -> dict[str, str]:
     """Keep agent listings separate from direct-owner leads; never infer owner status."""
     source = str(candidate.get("Source") or "").strip().lower()
     lead_type = str(candidate.get("Lead Type") or "").strip().lower()
     source_url = str(candidate.get("Source URL") or "").strip()
-    if not source_url.lower().startswith(("https://", "http://")):
+    if not _valid_source_url(source_url):
         return {
             "lead_channel": "UNVERIFIED_CHANNEL_REQUIRES_REVIEW",
             "lead_channel_reason": "Missing or unsupported source URL; provenance must be verified before classifying the lead channel.",
