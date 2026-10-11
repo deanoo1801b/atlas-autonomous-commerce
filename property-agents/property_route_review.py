@@ -8,6 +8,24 @@ from urllib.parse import urlsplit
 from contract_route_comparator import compare_routes
 from planning_opportunity_agent import development_profit_scenario
 
+def _comparable_url_key(url: str) -> str | None:
+    """Canonicalise HTTPS sale URLs for conservative duplicate detection."""
+    try:
+        parts = urlsplit(url.strip())
+        host = (parts.hostname or "").lower()
+        if parts.scheme.lower() != "https" or not host:
+            return None
+        if host.startswith("www."):
+            host = host[4:]
+        port = parts.port
+        if port not in (None, 443):
+            host = f"{host}:{port}"
+        path = parts.path.rstrip("/")
+        return f"https://{host}{path}"
+    except ValueError:
+        return None
+
+
 def _comparable_sales_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
     """Validate structured sold-comparable evidence; raw counts alone never verify comparables."""
     raw = candidate.get("Comparable Sales Evidence")
@@ -41,11 +59,8 @@ def _comparable_sales_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
         postcode = " ".join(str(item.get("postcode") or "").upper().split())
         property_type = " ".join(str(item.get("property_type") or "").lower().split())
         missing = []
-        try:
-            parsed_url = urlsplit(url)
-            valid_https_url = parsed_url.scheme.lower() == "https" and bool(parsed_url.hostname)
-        except ValueError:
-            valid_https_url = False
+        normalized_url = _comparable_url_key(url)
+        valid_https_url = normalized_url is not None
         if price <= 0: missing.append("valid sold price")
         if sale_date is None: missing.append("sale date")
         elif sale_date > today: missing.append("non-future sale date")
@@ -58,7 +73,8 @@ def _comparable_sales_evidence(candidate: dict[str, Any]) -> dict[str, Any]:
         else:
             # A source URL can only support one comparable; changing other fields on a
             # copied URL must not inflate the three-sale minimum.
-            normalized_url = url.lower().rstrip("/")
+            # Ignore tracking parameters/fragments and normalise hostname, default port and trailing slash.
+            # The URL itself remains the primary identity so copied evidence cannot inflate the threshold.
             identity = (normalized_url, postcode, sale_date.isoformat(), round(price, 2), property_type)
             if normalized_url in seen_source_urls or identity in seen_comparables:
                 reasons.append(f"Comparable {index}: duplicate evidence record; not counted twice")
