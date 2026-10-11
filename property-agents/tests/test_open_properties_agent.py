@@ -54,6 +54,14 @@ class OpenPropertiesDeduplicationTests(unittest.TestCase):
             result = agent.discover_open_properties()
         self.assertEqual(len(result), 2)
 
+    def test_malformed_provider_item_marks_scan_incomplete_and_skips_item(self):
+        with patch.dict("os.environ", {"ATLAS_OPEN_PROPERTIES_ENABLED": "true"}), \
+             patch.object(agent, "_locations", return_value=["Croydon"]), \
+             patch.object(agent, "_run", return_value=([None, {"id": "A1", "url": "https://example.test/a"}], True)):
+            result = agent.discover_open_properties()
+            self.assertEqual(len(result), 0)
+            self.assertFalse(agent.last_scan_complete())
+
     def test_missing_identifiers_are_retained_for_manual_review(self):
         first = {"address": "Unknown", "_search_location": "Croydon"}
         second = {"address": "Unknown", "_search_location": "Bromley"}
