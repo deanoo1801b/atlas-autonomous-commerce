@@ -299,6 +299,15 @@ class FinanceGateTests(unittest.TestCase):
                     "Listing Status": status,
                 }))
 
+    def test_finance_gate_requires_known_active_status(self):
+        for status in ("", "Unknown", "Under Offer"):
+            with self.subTest(status=status):
+                self.assertFalse(finance_ready({
+                    "Source URL": "https://example.test/property/1",
+                    "Asking Price": 250000,
+                    "Listing Status": status,
+                }))
+
     def test_finance_gate_rejects_do_not_contact(self):
         self.assertFalse(finance_ready({
             "Source URL": "https://example.test/property/1",
