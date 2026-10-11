@@ -75,25 +75,15 @@ jobs:
         working-directory: property-agents
         run: python -m unittest discover -s tests -v
 
-      - name: Validate required secrets
-        env:
-          SMARTSHEET_API_TOKEN: ${{ secrets.SMARTSHEET_API_TOKEN }}
-          PROPERTY_LEADS_SHEET_ID: ${{ secrets.PROPERTY_LEADS_SHEET_ID }}
-          FINANCE_OPPORTUNITIES_SHEET_ID: ${{ secrets.FINANCE_OPPORTUNITIES_SHEET_ID }}
+      - name: Enforce safe dry-run mode
         run: |
-          if [ -n "$SMARTSHEET_API_TOKEN" ] && [ -n "$PROPERTY_LEADS_SHEET_ID" ] && [ -n "$FINANCE_OPPORTUNITIES_SHEET_ID" ]; then
-            echo "Required secret configuration is present."
-            echo "ATLAS_PROPERTY_AGENT_DRY_RUN=false" >> "$GITHUB_ENV"
-          else
-            echo "::warning::Smartsheet secrets are not fully configured; agent will run safely in DRY_RUN."
-            echo "ATLAS_PROPERTY_AGENT_DRY_RUN=true" >> "$GITHUB_ENV"
-          fi
+          # Live Smartsheet writes remain disabled until the owner explicitly authorizes them.
+          echo "ATLAS_PROPERTY_AGENT_DRY_RUN=true" >> "$GITHUB_ENV"
+          echo "Safe mode enforced: no Smartsheet reads or writes will be performed."
 
       - name: Run controlled pipeline
         env:
-          SMARTSHEET_API_TOKEN: ${{ secrets.SMARTSHEET_API_TOKEN }}
-          PROPERTY_LEADS_SHEET_ID: ${{ secrets.PROPERTY_LEADS_SHEET_ID }}
-          FINANCE_OPPORTUNITIES_SHEET_ID: ${{ secrets.FINANCE_OPPORTUNITIES_SHEET_ID }}
+          ATLAS_PROPERTY_AGENT_DRY_RUN: "true"
         run: python property-agents/engine.py
 
       - name: Upload contract route review queue
