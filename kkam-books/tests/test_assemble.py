@@ -21,9 +21,9 @@ class AssembleTests(unittest.TestCase):
                     {"heading": "Example table", "table": {"headers": ["Item", "Amount"], "rows": [["Sales", "100"], ["Costs", "40"]]}},
                 ],
             }, output)
-            report = inspect_pdf(output, expected_pages=3, expected_trim="A4")
+            report = inspect_pdf(output, expected_pages=2, expected_trim="A4")
             self.assertEqual(report["technical_status"], "passed")
-            self.assertEqual(report["page_count"], 3)
+            self.assertEqual(report["page_count"], 2)
             self.assertTrue(report["metadata"].get("title"))
 
     def test_business_pdf_requires_title_and_sections(self):
