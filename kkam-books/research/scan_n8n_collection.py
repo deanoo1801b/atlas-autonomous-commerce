@@ -72,6 +72,10 @@ def audit_workflow(path: str) -> dict[str, Any]:
         "name": "",
         "node_count": 0,
         "edge_count": 0,
+        "dangling_connection_count": 0,
+        "dangling_connection_sources": "",
+        "dangling_connection_targets": "",
+        "connection_source_format": "",
         "no_op_count": 0,
         "code_nodes": 0,
         "shell_nodes": 0,
@@ -95,8 +99,28 @@ def audit_workflow(path: str) -> dict[str, Any]:
         connections = data.get("connections", {})
         if not isinstance(nodes, list) or not isinstance(connections, dict):
             raise ValueError("nodes or connections has invalid shape")
-        types = [str(n.get("type", "")) for n in nodes if isinstance(n, dict)]
-        creds = sorted({key for n in nodes if isinstance(n, dict) for key in (n.get("credentials") or {}).keys()})
+        node_objects = [n for n in nodes if isinstance(n, dict)]
+        types = [str(n.get("type", "")) for n in node_objects]
+        node_names = {str(n.get("name", "")) for n in node_objects}
+        node_ids = {str(n.get("id", "")) for n in node_objects if n.get("id")}
+        dangling_sources = sorted(source for source in connections if source not in node_names and source not in node_ids)
+        dangling_targets = set()
+        for outputs in connections.values():
+            if not isinstance(outputs, dict):
+                continue
+            for groups in outputs.values():
+                if not isinstance(groups, list):
+                    continue
+                for group in groups:
+                    if not isinstance(group, list):
+                        continue
+                    for edge in group:
+                        if isinstance(edge, dict):
+                            target = str(edge.get("node", ""))
+                            if target and target not in node_names and target not in node_ids:
+                                dangling_targets.add(target)
+        dangling_count = len(dangling_sources) + len(dangling_targets)
+        creds = sorted({key for n in node_objects for key in (n.get("credentials") or {}).keys()})
         urls, hard_ids = set(), set()
         for node in nodes:
             if not isinstance(node, dict):
@@ -110,6 +134,10 @@ def audit_workflow(path: str) -> dict[str, Any]:
             "name": str(data.get("name") or ""),
             "node_count": len(nodes),
             "edge_count": count_edges(connections),
+            "dangling_connection_count": dangling_count,
+            "dangling_connection_sources": ";".join(dangling_sources),
+            "dangling_connection_targets": ";".join(sorted(dangling_targets)),
+            "connection_source_format": "node-names" if all(source in node_names for source in connections) else ("node-ids" if all(source in node_ids for source in connections) else "mixed-or-unmatched"),
             "no_op_count": sum("noOp" in t.lower() or t.endswith(".noOp") for t in types),
             "code_nodes": sum(any(x in t.lower() for x in ("n8n-nodes-base.code", "n8n-nodes-base.function")) for t in types),
             "shell_nodes": sum(any(x in t.lower() for x in ("executecommand", "ssh")) for t in types),
@@ -170,6 +198,8 @@ def main() -> int:
         "valid_json": sum(r["json_valid"] for r in rows),
         "failed_download_or_parse": sum(not r["json_valid"] for r in rows),
         "files_with_noop": sum(r["no_op_count"] > 0 for r in rows),
+        "files_with_dangling_connections": sum(r["dangling_connection_count"] > 0 for r in rows),
+        "total_dangling_connection_references": sum(r["dangling_connection_count"] for r in rows),
         "files_with_shell_nodes": sum(r["shell_nodes"] > 0 for r in rows),
         "files_with_http_nodes": sum(r["http_nodes"] > 0 for r in rows),
         "files_with_error_handler": sum(r["has_error_handler"] for r in rows),
