@@ -94,6 +94,12 @@ def _lead_channel_review(candidate: dict[str, Any]) -> dict[str, str]:
     """Keep agent listings separate from direct-owner leads; never infer owner status."""
     source = str(candidate.get("Source") or "").strip().lower()
     lead_type = str(candidate.get("Lead Type") or "").strip().lower()
+    source_url = str(candidate.get("Source URL") or "").strip()
+    if not source_url.lower().startswith(("https://", "http://")):
+        return {
+            "lead_channel": "UNVERIFIED_CHANNEL_REQUIRES_REVIEW",
+            "lead_channel_reason": "Missing or unsupported source URL; provenance must be verified before classifying the lead channel.",
+        }
     if source.startswith("open-properties/") or lead_type in {"open market listing", "agent listing"}:
         return {
             "lead_channel": "AGENT_LISTING_MARKET_INTELLIGENCE_ONLY",
