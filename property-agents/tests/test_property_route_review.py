@@ -157,7 +157,7 @@ class PropertyRouteReviewTests(unittest.TestCase):
         comps = [
             {"sold_price": 185000, "sale_date": sold, "source_url": "https://example.test/sold/1?utm_source=portal#details",
              "postcode": "CR0 1AA", "property_type": "terraced"},
-            {"sold_price": 195000, "sale_date": sold, "source_url": "https://www.example.test/sold/1/:443/",
+            {"sold_price": 195000, "sale_date": sold, "source_url": "https://www.example.test:443/sold/1/",
              "postcode": "CR0 1AA", "property_type": "terraced"},
             {"sold_price": 205000, "sale_date": sold, "source_url": "https://example.test/sold/3",
              "postcode": "CR0 1AA", "property_type": "terraced"},
