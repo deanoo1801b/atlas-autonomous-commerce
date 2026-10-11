@@ -157,3 +157,101 @@ def write_report(report: dict[str, Any], output_path: str | Path) -> None:
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+
+def create_contact_sheet(
+    rendered_pages: list[str | Path],
+    output_path: str | Path,
+    *,
+    columns: int = 4,
+    thumbnail_width: int = 240,
+) -> Path:
+    """Create a human-review contact sheet from rendered PDF pages."""
+    if not rendered_pages:
+        raise ValueError("rendered_pages must not be empty")
+    if columns < 1 or thumbnail_width < 80:
+        raise ValueError("columns must be >= 1 and thumbnail_width >= 80")
+    try:
+        from PIL import Image, ImageDraw
+    except ImportError as exc:
+        raise RuntimeError("Pillow is required to create a contact sheet.") from exc
+
+    thumbs = []
+    for item in rendered_pages:
+        path = Path(item)
+        if not path.is_file():
+            raise FileNotFoundError(f"Missing rendered page: {path}")
+        with Image.open(path) as source:
+            thumb = source.convert("RGB")
+            height = max(1, round(thumb.height * thumbnail_width / thumb.width))
+            thumb = thumb.resize((thumbnail_width, height))
+            thumbs.append((path.name, thumb))
+    cell_h = max(image.height for _, image in thumbs) + 34
+    rows = (len(thumbs) + columns - 1) // columns
+    sheet = Image.new("RGB", (columns * thumbnail_width, rows * cell_h), "white")
+    draw = ImageDraw.Draw(sheet)
+    for index, (name, image) in enumerate(thumbs):
+        x = (index % columns) * thumbnail_width
+        y = (index // columns) * cell_h
+        sheet.paste(image, (x, y + 24))
+        draw.text((x + 4, y + 5), name, fill="black")
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(output, format="PNG")
+    return output
+
+
+def analyse_colouring_pages(
+    rendered_pages: list[str | Path],
+    *,
+    minimum_white_ratio: float = 0.90,
+    minimum_ink_ratio: float = 0.001,
+    maximum_ink_ratio: float = 0.25,
+    maximum_midtone_ratio: float = 0.02,
+) -> dict[str, Any]:
+    """Heuristic pre-screen for colouring interiors; never replaces visual review."""
+    if not rendered_pages:
+        raise ValueError("rendered_pages must not be empty")
+    try:
+        from PIL import Image, ImageStat
+    except ImportError as exc:
+        raise RuntimeError("Pillow is required for colouring-page analysis.") from exc
+
+    pages = []
+    for item in rendered_pages:
+        path = Path(item)
+        if not path.is_file():
+            raise FileNotFoundError(f"Missing rendered page: {path}")
+        with Image.open(path) as source:
+            gray = source.convert("L")
+            histogram = gray.histogram()
+            total = max(1, sum(histogram))
+            dark = sum(histogram[:200]) / total
+            midtone = sum(histogram[200:246]) / total
+            white = sum(histogram[246:]) / total
+            flags = []
+            if white < minimum_white_ratio:
+                flags.append("background-not-clean-white")
+            if dark < minimum_ink_ratio:
+                flags.append("too-little-line-art-or-near-blank")
+            if dark > maximum_ink_ratio:
+                flags.append("very-dense-artwork")
+            if midtone > maximum_midtone_ratio:
+                flags.append("possible-shading-or-grey-background")
+            pages.append({
+                "path": str(path),
+                "width_px": gray.width,
+                "height_px": gray.height,
+                "white_ratio": round(white, 5),
+                "dark_ink_ratio": round(dark, 5),
+                "midtone_ratio": round(midtone, 5),
+                "flags": flags,
+                "status": "needs-review" if flags else "heuristics-passed-needs-visual-review",
+            })
+    return {
+        "page_count": len(pages),
+        "pages": pages,
+        "overall_status": "needs-review" if any(p["flags"] for p in pages) else "heuristics-passed-needs-visual-review",
+        "note": "Pixel ratios are heuristics only. A human/vision reviewer must inspect every page for clipping, line quality, age appropriateness and unintended content.",
+    }
