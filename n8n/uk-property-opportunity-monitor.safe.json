@@ -1,0 +1,199 @@
+{
+  "name": "ATLAS UK Property Opportunity Monitor — SAFE",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "uk-schedule",
+      "name": "Daily UK Property Scan",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -700,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Approved-source registry placeholder.\n// Add only sources whose terms permit the intended automated access.\n// No network request is made by this node.\nconst sources = [\n  // { name: \"Approved source\", url: \"https://example.co.uk/feed.xml\", jurisdiction: \"England\" }\n];\nreturn sources.map(source => ({ json: source }));"
+      },
+      "id": "source-registry",
+      "name": "Approved UK Source Registry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Safe staging gate. An empty registry is an intentional safe state.\n// Never interpret an empty response as zero property opportunities.\nif (items.length === 0) {\n  return [{ json: {\n    status: \"blocked\",\n    reason: \"No approved UK sources configured\",\n    opportunitiesFound: 0,\n    action: \"Configure and review source allowlist before enabling collection\"\n  }}];\n}\nreturn items;"
+      },
+      "id": "source-gate",
+      "name": "Source Allowlist Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Evidence validator for staged records.\n// This node intentionally does not fetch websites or contact anyone.\nreturn items.map(item => {\n  const r = item.json;\n  let sourceUrlValid = false;\n  try {\n    const u = new URL(r.sourceUrl || r.url || \"\");\n    sourceUrlValid =\n      (u.protocol === \"https:\" || u.protocol === \"http:\") &&\n      Boolean(u.hostname) &&\n      !/[\\\\s]/.test(r.sourceUrl || r.url || \"\");\n  } catch {}\n  const location = String(r.propertyOrProjectLocation || r.address || \"\").trim();\n  const postcode = String(r.postcode || \"\").trim().toUpperCase().replace(/\\\\s+/g, \" \");\n  return {\n    json: {\n      ...r,\n      sourceUrl: r.sourceUrl || r.url || \"\",\n      sourceUrlValid,\n      normalizedPostcode: postcode || undefined,\n      evidenceStatus: sourceUrlValid && location ? \"review_required\" : \"quarantine\",\n      verifiedOwnership: false,\n      verifiedDistress: false,\n      contactPermissionEstablished: false,\n      reviewReason: sourceUrlValid && location\n        ? \"Evidence is structurally usable but requires human verification.\"\n        : \"Missing or invalid source URL or property/project location.\"\n    }\n  };\n});"
+      },
+      "id": "evidence-gate",
+      "name": "UK Evidence Validation Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.evidenceStatus }}",
+              "rightValue": "review_required",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "review-if",
+      "name": "Human Review Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        180,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dry-run review output. No CRM, email, Slack or broker action.\nreturn items.map(item => ({\n  json: {\n    ...item.json,\n    nextAction: \"human_review\",\n    outreachStatus: \"not_authorized\",\n    complianceStatus: \"review_required\"\n  }\n}));"
+      },
+      "id": "review-output",
+      "name": "Create Review Record — DRY RUN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({\n  json: {\n    ...item.json,\n    nextAction: \"quarantine\",\n    outreachStatus: \"not_authorized\",\n    complianceStatus: \"blocked\"\n  }\n}));"
+      },
+      "id": "quarantine-output",
+      "name": "Quarantine Invalid Evidence",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "Daily UK Property Scan": {
+      "main": [
+        [
+          {
+            "node": "Approved UK Source Registry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved UK Source Registry": {
+      "main": [
+        [
+          {
+            "node": "Source Allowlist Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Source Allowlist Gate": {
+      "main": [
+        [
+          {
+            "node": "UK Evidence Validation Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UK Evidence Validation Gate": {
+      "main": [
+        [
+          {
+            "node": "Human Review Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human Review Gate": {
+      "main": [
+        [
+          {
+            "node": "Create Review Record — DRY RUN",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Quarantine Invalid Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/London"
+  },
+  "versionId": "atlas-uk-property-safe-v1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    "ATLAS",
+    "UK-property",
+    "dry-run",
+    "evidence-first"
+  ]
+}
