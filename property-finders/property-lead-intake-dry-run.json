@@ -1,0 +1,53 @@
+{
+  "name": "Property Finders — Lead Intake and Qualification (Dry Run)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "pf-manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "/* PROPERTY FINDERS DRY-RUN ONLY. Synthetic data, no network, no CRM writes, no seller outreach. */\nconst leads = [\n {sourceUrl:'https://example.invalid/listing/101', address:'12 Example Road, London, AB1 2CD', askingPrice:250000, estimatedComparableValue:300000, daysListed:75, privateSellerEvidence:true, sourceVerified:true, notes:'Synthetic test record'},\n {sourceUrl:'https://example.invalid/listing/102', address:'12 Example Road, London, AB1 2CD', askingPrice:250000, estimatedComparableValue:null, daysListed:null, privateSellerEvidence:false, sourceVerified:false, notes:'Duplicate synthetic address; evidence incomplete'},\n {sourceUrl:'https://example.invalid/listing/103', address:'8 Sample Street, London, EF3 4GH', askingPrice:0, estimatedComparableValue:280000, daysListed:30, privateSellerEvidence:false, sourceVerified:false, notes:'Invalid asking price test'}\n];\nconst seen = new Set();\nreturn leads.map((lead) => {\n const key = String(lead.address || '').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();\n const duplicate = key.length > 0 && seen.has(key);\n if (key) seen.add(key);\n const validPrice = Number.isFinite(lead.askingPrice) && lead.askingPrice > 0;\n const validComp = Number.isFinite(lead.estimatedComparableValue) && lead.estimatedComparableValue > 0;\n const discountPct = validPrice && validComp ? Math.round((1 - lead.askingPrice / lead.estimatedComparableValue) * 1000) / 10 : null;\n let confidence = lead.sourceVerified && validPrice && validComp ? 'MEDIUM' : 'LOW';\n let status = 'REVIEW_REQUIRED';\n if (!validPrice) status = 'INVALID_PRICE_REVIEW';\n else if (duplicate) status = 'POSSIBLE_DUPLICATE';\n else if (lead.sourceVerified && validComp && discountPct >= 10 && lead.privateSellerEvidence) status = 'PRIORITY_HUMAN_REVIEW';\n return {json:{project:'PROPERTY_FINDERS',sourceUrl:lead.sourceUrl,address:lead.address,askingPrice:lead.askingPrice,estimatedComparableValue:lead.estimatedComparableValue,discountPct,daysListed:lead.daysListed,privateSellerEvidence:lead.privateSellerEvidence,sourceVerified:lead.sourceVerified,duplicate,confidence,status,action:'NO_OUTREACH_NO_REFERRAL_NO_FINANCIAL_DECISION',dryRun:true,notes:lead.notes}};\n});"
+      },
+      "id": "pf-score-leads",
+      "name": "Normalize, Deduplicate and Score (Synthetic Data)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 300],
+      "notes": "Synthetic examples only. Scoring is a test scaffold, not a validated investment model."
+    },
+    {
+      "parameters": {
+        "content": "PROPERTY FINDERS ONLY\n\nSeparate from Atlas Goods Store and The Floopies.\n\nThis inactive dry-run workflow uses synthetic records only. No scraping, API calls, Smartsheet writes, seller contact, buyer referrals or finance decisions occur.\n\nBefore production: verify lawful data sources, UK coverage, stable dedupe key, Smartsheet columns, credentials, audit trail, retries and human approval gates.",
+        "height": 280,
+        "width": 360,
+        "color": 5
+      },
+      "id": "pf-safety-gate",
+      "name": "Property Project Safety Gate",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [220, 40]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{"node":"Normalize, Deduplicate and Score (Synthetic Data)","type":"main","index":0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "executionTimeout": 60
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
