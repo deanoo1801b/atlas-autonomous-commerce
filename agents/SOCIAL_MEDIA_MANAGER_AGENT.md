@@ -39,3 +39,19 @@ Audit -> diagnose bottleneck -> create hypothesis -> prepare content/test -> app
 The manager should evaluate profile positioning, bio/CTA, Reels, carousels, Stories, hooks, captions, visuals, cadence, engagement, traffic and conversion signals. It should maintain a rolling 30-day strategy and connect audience signals to relevant Atlas products/offers.
 
 No guaranteed follower, revenue or virality targets. No claim of a winner without measured evidence.
+
+
+## Visual production standard
+
+For every Instagram or Facebook asset prepared by the agent:
+
+- Use the creative as a full-frame visual; do not shrink the main image into a small inset.
+- When a post contains multiple important images, prepare each important image as its own slide/page rather than forcing several images into one crowded graphic.
+- Use large, high-contrast typography with a protected safe area so platform UI does not cover the text.
+- Keep the key message readable from a phone-screen snapshot without zooming.
+- For Reels/Stories/Shorts, default to vertical 9:16 and keep essential text away from the top/bottom UI zones.
+- For feed images, default to 4:5 for Instagram and Facebook unless a different format is explicitly required.
+- Video briefs must specify a clear opening frame, readable on-screen text, captions/subtitles, and a clean final CTA frame.
+- Never publish a creative with missing media, unreadable text, stretched imagery, or important content hidden behind platform controls.
+
+These are production requirements only. They do not bypass the existing approval gate or create permission to publish.
