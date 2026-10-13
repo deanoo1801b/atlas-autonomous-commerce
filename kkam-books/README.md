@@ -41,6 +41,8 @@ Use a stable product ID and version metadata. Never overwrite an approved final 
 
 ## Current records
 
+- [Seven-product roadmap and acceptance criteria](docs/product-roadmap.md)
+- [Machine-readable product roadmap](config/product-roadmap.json)
 - [Collection inventory and full-scan results](research/collection-inventory.md)
 - [Initial candidate audit](research/candidate-audit.md)
 - [Ranked 20-workflow shortlist](research/ranked-shortlist.md)
