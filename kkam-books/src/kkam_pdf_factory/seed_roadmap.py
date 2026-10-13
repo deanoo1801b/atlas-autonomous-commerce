@@ -18,6 +18,8 @@ def seed(roadmap_path: str | Path, db_path: str | Path) -> dict[str, object]:
         if not product_id or product_id in ids:
             raise ValueError(f"Missing or duplicate product_id: {product_id!r}")
         ids.add(product_id)
+    # Validate the whole roadmap before writing any records, avoiding partial seeds.
+    for product in products:
         record = {k: v for k, v in product.items() if k != "acceptance_checks"}
         upsert_product(db_path, record)
     return {"status": "seeded", "count": len(products), "product_ids": sorted(ids), "database": str(db_path)}
