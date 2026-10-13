@@ -37,8 +37,12 @@ class ProductRoadmapSeedTests(unittest.TestCase):
                 {"product_id": "DUP", "title": "One", "category": "test"},
                 {"product_id": "DUP", "title": "Two", "category": "test"}
             ]}), encoding="utf-8")
+            db = root / "catalogue.sqlite3"
             with self.assertRaises(ValueError):
-                seed(roadmap, root / "catalogue.sqlite3")
+                seed(roadmap, db)
+            if db.exists():
+                with connect(db) as conn:
+                    self.assertEqual(conn.execute("SELECT COUNT(*) FROM products").fetchone()[0], 0)
 
 
 if __name__ == "__main__":
