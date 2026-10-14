@@ -28,7 +28,7 @@ After adding secrets, open Actions -> ATLAS Live Connector Health Check -> Run w
 
 ## Current limitation
 
-ChatGPT's Shopify and Metricool connections do not automatically transfer their credentials into GitHub Actions. The GitHub workflow cannot pass until the four required secrets are configured in the repository. The current Shopify API endpoint version in the script is 2026-07, which is a supported stable Shopify Admin API version as of this review.
+ChatGPT's Shopify and Metricool connections do not automatically transfer their credentials into GitHub Actions. The GitHub workflow cannot pass until the four required secrets are configured in the repository. The health-check script defaults to Shopify Admin GraphQL API version 2026-10 (the latest stable version at the time of review), and applies a 15-second timeout to both external requests.
 
 ## Safety
 
