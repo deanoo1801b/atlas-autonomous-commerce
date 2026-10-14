@@ -1,23 +1,21 @@
 import process from "node:process";
 
-const required = [
-  "SHOPIFY_STORE_DOMAIN",
-  "SHOPIFY_ADMIN_ACCESS_TOKEN",
-  "METRICOOL_API_TOKEN",
-  "METRICOOL_USER_ID"
-];
-const missing = required.filter((key) => !process.env[key]);
-if (missing.length) {
-  console.error(JSON.stringify({ status: "BLOCKED", reason: "Missing required GitHub Actions secrets/variables", missing }));
-  process.exit(2);
-}
-
 const now = new Date().toISOString();
 const SHOPIFY_API_VERSION = process.env.SHOPIFY_API_VERSION || "2026-10";
 const results = { checkedAt: now, shopify: null, metricool: null };
 
+function missingFor(keys) {
+  return keys.filter((key) => !process.env[key]);
+}
+
 async function checkShopify() {
-  const domain = process.env.SHOPIFY_STORE_DOMAIN.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const required = ["SHOPIFY_STORE_DOMAIN", "SHOPIFY_ADMIN_ACCESS_TOKEN"];
+  const missing = missingFor(required);
+  if (missing.length) {
+    return { status: "BLOCKED", reason: "Missing required GitHub Actions secrets", missing };
+  }
+
+  const domain = process.env.SHOPIFY_STORE_DOMAIN.replace(/^https?:\\/\\//, "").replace(/\\/$/, "");
   const response = await fetch(`https://${domain}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`, {
     method: "POST",
     signal: AbortSignal.timeout(15000),
@@ -46,6 +44,12 @@ async function checkShopify() {
 }
 
 async function checkMetricool() {
+  const required = ["METRICOOL_API_TOKEN", "METRICOOL_USER_ID"];
+  const missing = missingFor(required);
+  if (missing.length) {
+    return { status: "BLOCKED", reason: "Missing required GitHub Actions secrets", missing };
+  }
+
   const userId = process.env.METRICOOL_USER_ID;
   const response = await fetch(`https://app.metricool.com/api/admin/simpleProfiles?userId=${encodeURIComponent(userId)}`, {
     signal: AbortSignal.timeout(15000),
