@@ -106,3 +106,12 @@ Review high-value workflows individually in batches. For every candidate, record
 - All four have a documented decision; none is approved for direct production import.
 - No n8n instance is connected in this task, so no import/runtime execution test is claimed.
 - The strongest immediate reusable patterns are the SEO audit checklist and week-over-week analytics comparison; both should be rebuilt natively with Atlas data access rather than copying the upstream JSON.
+
+
+### Adaptation committed to ATLAS
+- Added `src/seo/audit.ts`, a deterministic read-only SEO page audit inspired by the useful checklist concept from the upstream audit workflow.
+- It accepts an already-supplied HTML snapshot; it does not fetch URLs, call an AI provider, email anyone, or modify Shopify.
+- It restricts the supplied URL to HTTPS pages on `atlasgoodsstore.co.uk` and checks title, meta description, H1 count, canonical URL, noindex directives, and image alt attributes.
+- It returns structured findings and always marks the report for human review.
+- Commit: `c2b342a5f869e41a01903026f7e27c08af0f195f`.
+- Validation caveat: the file is committed, but a TypeScript build, automated test run, and n8n import/runtime test have not been verified in this session. It must not yet be described as production-tested.
