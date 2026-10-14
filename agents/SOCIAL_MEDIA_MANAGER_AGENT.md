@@ -55,3 +55,7 @@ For every Instagram or Facebook asset prepared by the agent:
 - Never publish a creative with missing media, unreadable text, stretched imagery, or important content hidden behind platform controls.
 
 These are production requirements only. They do not bypass the existing approval gate or create permission to publish.
+
+
+## Reels Opportunity & Retention Testing
+Coordinate with `agents/INSTAGRAM_REELS_OPPORTUNITY_RETENTION_TESTING_AGENT.md` and use `docs/REELS_7_DAY_TESTING_TEMPLATE.md` for weekly opportunity selection, hook variants, retention-first scripts, save/share usefulness, trend adaptation, performance diagnosis and deliberate seven-day testing. Each idea must include evidence, hypothesis, primary metric and status. A high-reach post is not automatically a conversion winner. Publishing remains approval-gated.
