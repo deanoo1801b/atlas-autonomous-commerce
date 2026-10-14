@@ -115,3 +115,11 @@ Review high-value workflows individually in batches. For every candidate, record
 - It returns structured findings and always marks the report for human review.
 - Commit: `c2b342a5f869e41a01903026f7e27c08af0f195f`.
 - Validation caveat: the file is committed, but a TypeScript build, automated test run, and n8n import/runtime test have not been verified in this session. It must not yet be described as production-tested.
+
+
+### Second adaptation committed to ATLAS
+- Added `src/analytics/period-comparison.ts`, a pure/read-only week-over-week commerce metrics comparison inspired by the useful idea in the upstream Google Analytics templates.
+- Compares sessions, add-to-carts, checkout starts, orders and revenue; validates inputs; avoids infinite percentage changes for zero baselines; and flags potentially inconsistent funnel counts.
+- It makes no network calls, does not send reports, and cannot edit the store. Human review remains required.
+- Commit: `f34629b9af0593f7e9fb6800a4ee919c7caeee6f`.
+- This is a reusable component, not a connected analytics agent. TypeScript build and test execution remain unverified here.
