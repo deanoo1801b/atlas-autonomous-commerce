@@ -1,0 +1,55 @@
+name: ATLAS Public Store Monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 */6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  check-storefront:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check public Atlas storefront
+        run: |
+          node --input-type=module <<'NODE'
+          const target = "https://atlasgoodsstore.co.uk/";
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 15000);
+          try {
+            const response = await fetch(target, {
+              redirect: "follow",
+              signal: controller.signal,
+              headers: { "user-agent": "ATLAS-Public-Store-Monitor/1.0" }
+            });
+            const finalUrl = new URL(response.url);
+            if (finalUrl.protocol !== "https:" ||
+                !(finalUrl.hostname === "atlasgoodsstore.co.uk" ||
+                  finalUrl.hostname.endsWith(".atlasgoodsstore.co.uk"))) {
+              throw new Error("Redirect left the approved Atlas domain.");
+            }
+            const html = await response.text();
+            const title = html.match(/<title\b[^>]*>([\s\S]*?)<\/title\s*>/i)?.[1]
+              ?.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() ?? "";
+            const description = html.match(/<meta\b[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/i)?.[1]?.trim() ?? "";
+            const noindex = /<meta\b[^>]*name=["']robots["'][^>]*content=["'][^"']*noindex/i.test(html);
+            console.log("checked_at:", new Date().toISOString());
+            console.log("http_status:", response.status);
+            console.log("final_url:", finalUrl.href);
+            console.log("title_present:", Boolean(title));
+            console.log("meta_description_present:", Boolean(description));
+            console.log("robots_noindex:", noindex);
+            if (!response.ok) throw new Error("Storefront returned HTTP " + response.status);
+            if (!title) console.warn("WARNING: homepage title was not detected.");
+            if (!description) console.warn("WARNING: homepage meta description was not detected.");
+            if (noindex) console.warn("WARNING: homepage has a noindex directive.");
+          } catch (error) {
+            console.error("Storefront check failed:", error?.name === "AbortError" ? "request timed out after 15 seconds" : error?.message ?? "unknown error");
+            process.exitCode = 1;
+          } finally {
+            clearTimeout(timer);
+          }
+          NODE
