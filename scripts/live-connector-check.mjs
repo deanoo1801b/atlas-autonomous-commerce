@@ -15,7 +15,7 @@ async function checkShopify() {
     return { status: "BLOCKED", reason: "Missing required GitHub Actions secrets", missing };
   }
 
-  const domain = process.env.SHOPIFY_STORE_DOMAIN.replace(/^https?:\\/\\//, "").replace(/\\/$/, "");
+  const domain = process.env.SHOPIFY_STORE_DOMAIN.replaceAll("https:", "").replaceAll("http:", "").replaceAll("/", "");
   const response = await fetch(`https://${domain}/admin/api/${SHOPIFY_API_VERSION}/graphql.json`, {
     method: "POST",
     signal: AbortSignal.timeout(15000),
