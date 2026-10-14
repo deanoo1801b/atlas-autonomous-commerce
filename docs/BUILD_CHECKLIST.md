@@ -231,3 +231,16 @@ Scope: review the five checkout recommendations from the supplied reference for 
 - [ ] Verify shipping rates and payment methods with a safe, non-charged test order before declaring checkout healthy
 - [ ] Record screenshots/evidence and final state of each setting
 - [ ] Address-validation caveat: Shopify's documented pre-checkout address validation country list does not include the United Kingdom; confirm current availability in this store before expecting it to validate UK addresses
+
+
+## Instagram Reels Intelligence Layer
+- [x] Seven-day demand-led Reels opportunity framework
+- [x] 20-hook generation and ranked selection framework
+- [x] Retention-first scene-by-scene Reel scripting framework
+- [x] Save/share usefulness framework
+- [x] Existing Reel diagnosis using supplied metrics
+- [x] Trend-mechanism adaptation without copying
+- [x] Seven-day hypothesis-led testing template
+- [x] Product URL, availability, market eligibility and compliance gates
+- [ ] Feed live Instagram/Metricool performance metrics into the Reels agent
+- [ ] Execute scheduled tests through an authorised publishing connection
