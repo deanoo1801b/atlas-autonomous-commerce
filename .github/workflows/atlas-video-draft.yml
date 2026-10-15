@@ -22,7 +22,7 @@ jobs:
       - name: Install free video and speech tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg espeak
+          sudo apt-get install -y ffmpeg espeak librsvg2-bin
       - name: Render draft video
         env:
           VIDEO_TOPIC: ${{ inputs.topic }}
