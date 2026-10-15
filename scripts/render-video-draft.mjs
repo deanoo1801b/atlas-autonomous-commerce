@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import { execFileSync } from "node:child_process";
 
 const topic = (process.env.VIDEO_TOPIC || "Atlas Goods Store: everyday essentials").trim().slice(0, 180);
@@ -49,7 +50,7 @@ for (let i = 0; i < scenes.length; i++) {
   clipPaths.push(mp4Path);
 }
 const listPath = `${outDir}/concat.txt`;
-fs.writeFileSync(listPath, clipPaths.map(p => `file '${p}'`).join("\n"));
+fs.writeFileSync(listPath, clipPaths.map(p => `file '${path.basename(p)}'`).join("\n"));
 execFileSync("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", listPath, "-c", "copy", "-movflags", "+faststart", `${outDir}/atlas-video-draft.mp4`], { stdio: "inherit" });
 fs.writeFileSync(`${outDir}/CAPTION.txt`, `${topic}\n\nUseful everyday finds from Atlas Goods Store. Explore the collection at https://atlasgoodsstore.co.uk/\n\n#AtlasGoodsStore #UKShopping #HomeEssentials\n\nDRAFT ONLY: Review product claims, visuals and caption before publishing. This free prototype uses generated text cards and synthetic speech; it does not use AI-generated product imagery.\n`);
 console.log("Created video-output/atlas-video-draft.mp4");
