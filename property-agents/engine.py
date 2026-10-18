@@ -374,11 +374,7 @@ def run():
     scan_id = _scan_id()
     try:
         if DRY_RUN:
-            print("Dry-run health check passed. No Smartsheet reads or writes performed.")
-            dry_scan_id = _scan_id()
-            write_review_queue([], dry_scan_id)
-            _write_scan_report(dry_scan_id, 0, 0, False, "DRY_RUN")
-            return
+            print("DRY_RUN enabled: public-source discovery and local reporting are allowed; Smartsheet reads/writes are disabled.")
     
         # Public private-seller discovery runs before qualification. It only creates
         # candidate rows; it never contacts sellers or collects private contact data.
@@ -436,6 +432,23 @@ def run():
         # Local audit artifact only; no route data is written to Smartsheet.
         route_review = write_review_queue(discovered, scan_id)
         print(f"Contract route review queue created for {route_review['candidate_count']} candidates; no commitments or outreach performed.")
+
+        # Dry-run is discovery-only: finish public-source scans and local artifacts,
+        # then stop before any Smartsheet read/write or finance pipeline mutation.
+        if DRY_RUN:
+            _write_scan_report(
+                scan_id,
+                len(discovered),
+                len(open_market),
+                open_market_scan_complete,
+                "DRY_RUN_DISCOVERY_COMPLETE",
+            )
+            print(
+                f"Dry-run discovery complete: {len(discovered)} candidates "
+                f"({len(open_market)} open-market listings); no Smartsheet reads/writes, "
+                "seller contact, offers, referrals, or publishing performed."
+            )
+            return
 
         ps, fs = get_sheet(PROPERTY_SHEET), get_sheet(FINANCE_SHEET)
         pc, fc = cols(ps), cols(fs)
