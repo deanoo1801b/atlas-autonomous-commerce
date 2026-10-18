@@ -108,6 +108,19 @@ def _candidate_links(source, html):
             break
     return result
 
+def _is_sample_listing(text: str, url: str = "", label: str = "") -> bool:
+    """Reject obvious demo/test/sample pages before treating them as real property leads."""
+    combined = re.sub(r"\\s+", " ", f"{label} {url} {text}").lower()
+    patterns = (
+        r"\\bsample listing\\b",
+        r"\\bnot a real (?:home|property|listing)\\b",
+        r"\\bdemo (?:listing|property|home)\\b",
+        r"\\btest (?:listing|property|home)\\b",
+        r"\\bexample (?:listing|property|home)\\b",
+        r"\\bplaceholder (?:listing|property|home)\\b",
+    )
+    return any(re.search(pattern, combined) for pattern in patterns)
+
 def discover_private_sellers():
     candidates = []
     for source in SOURCES:
@@ -122,14 +135,21 @@ def discover_private_sellers():
             if len(text) < 40:
                 continue
             low = text.lower()
-            # Strong private-owner signal from the source itself.
+            # Exclude platform demo data; a sample page must never become a seller lead.
+            if _is_sample_listing(text, url, label):
+                continue
+            # Require listing-level evidence, even on owner-focused platforms:
+            # platform positioning alone does not prove that this individual listing
+            # is genuinely being offered directly by its owner.
             private_signal = any(k in low for k in (
                 "private seller", "owner listed", "owner-listed", "sell privately",
                 "directly by the owner", "private vendor", "homeowner",
                 "owner-to-buyer", "no estate agent", "without an estate agent",
-                "listed by the owner", "listed directly by owners"
+                "listed by the owner", "listed directly by owners",
+                "for sale by owner", "sold directly by owner", "owner is selling",
+                "selling my home", "selling our home"
             ))
-            if not source.get("owner_only") and not private_signal:
+            if not private_signal:
                 continue
             price = _price(text)
             digest = hashlib.sha256(url.encode()).hexdigest()[:16]
