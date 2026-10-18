@@ -5,9 +5,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-import engine
-
 os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
+
+import engine
 
 from engine import _identity_key, _canonical_url, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates, classify_relisting, _property_relisting_key, geography_status, apply_geography_gate
 from open_properties_agent import to_property_lead
