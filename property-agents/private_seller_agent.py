@@ -7,6 +7,7 @@ Sources are intentionally limited to platforms that advertise owner/private list
 from __future__ import annotations
 
 import hashlib
+import os
 import json
 import re
 import time
@@ -134,9 +135,23 @@ def _is_sample_listing(text: str, url: str = "", label: str = "") -> bool:
     )
     return any(re.search(pattern, combined) for pattern in patterns)
 
+def _source_is_approved(source: dict) -> bool:
+    """Require explicit operator approval after checking each site's terms/API rights."""
+    approved = {
+        name.strip().casefold()
+        for name in os.getenv("ATLAS_APPROVED_PRIVATE_SELLER_SOURCES", "").split(",")
+        if name.strip()
+    }
+    return str(source.get("name") or "").strip().casefold() in approved
+
+
 def discover_private_sellers():
     candidates = []
     for source in SOURCES:
+        # robots.txt is not a licence. Do not automate a source until its terms/API
+        # permissions have been reviewed and its name explicitly allowlisted.
+        if not _source_is_approved(source):
+            continue
         index_html = _fetch(source["index"])
         if not index_html:
             continue
