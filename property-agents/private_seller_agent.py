@@ -110,14 +110,14 @@ def _candidate_links(source, html):
 
 def _is_sample_listing(text: str, url: str = "", label: str = "") -> bool:
     """Reject obvious demo/test/sample pages before treating them as real property leads."""
-    combined = re.sub(r"\\s+", " ", f"{label} {url} {text}").lower()
+    combined = re.sub(r"\s+", " ", f"{label} {url} {text}").lower()
     patterns = (
-        r"\\bsample listing\\b",
-        r"\\bnot a real (?:home|property|listing)\\b",
-        r"\\bdemo (?:listing|property|home)\\b",
-        r"\\btest (?:listing|property|home)\\b",
-        r"\\bexample (?:listing|property|home)\\b",
-        r"\\bplaceholder (?:listing|property|home)\\b",
+        r"\bsample listing\\b",
+        r"\bnot a real (?:home|property|listing)\\b",
+        r"\bdemo (?:listing|property|home)\\b",
+        r"\btest (?:listing|property|home)\\b",
+        r"\bexample (?:listing|property|home)\\b",
+        r"\bplaceholder (?:listing|property|home)\\b",
     )
     return any(re.search(pattern, combined) for pattern in patterns)
 
