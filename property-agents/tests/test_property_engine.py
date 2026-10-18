@@ -23,6 +23,13 @@ class PrivateSellerSourcePolicyTests(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             self.assertFalse(private_seller_agent._source_is_approved({"name": "Keyzee"}))
 
+    def test_discovery_does_not_fetch_unapproved_sources(self):
+        with patch.dict(os.environ, {}, clear=True), \
+             patch.object(private_seller_agent, "SOURCES", [{"name": "Keyzee", "index": "https://keyzee.co.uk/"}]), \
+             patch.object(private_seller_agent, "_fetch") as fetch:
+            self.assertEqual(private_seller_agent.discover_private_sellers(), [])
+        fetch.assert_not_called()
+
     def test_private_seller_source_requires_exact_allowlist_entry(self):
         with patch.dict(os.environ, {
             "ATLAS_APPROVED_PRIVATE_SELLER_SOURCES": "Keyzee, OffAgent"
