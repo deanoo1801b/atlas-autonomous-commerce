@@ -57,7 +57,7 @@ class OpenPropertiesDeduplicationTests(unittest.TestCase):
     def test_duplicate_canonical_url_is_dropped_across_search_areas(self):
         first = {"id": "A1", "portal": "rightmove", "url": "https://example.test/listing/1/?utm=x"}
         second = {"id": "A2", "portal": "rightmove", "url": "https://example.test/listing/1"}
-        with patch.dict("os.environ", {"ATLAS_OPEN_PROPERTIES_ENABLED": "true"}), \
+        with patch.dict("os.environ", {"ATLAS_OPEN_PROPERTIES_ENABLED": "true", "ATLAS_RIGHTMOVE_WRITTEN_PERMISSION": "true"}), \
              patch.object(agent, "_locations", return_value=["Croydon", "Bromley"]), \
              patch.object(agent, "_run", side_effect=[([first], True), ([second], True)]):
             result = agent.discover_open_properties()
@@ -69,7 +69,7 @@ class OpenPropertiesDeduplicationTests(unittest.TestCase):
                  "address": "12 High Street", "postcode": "CR0 1AA"}
         second = {"id": "A2", "portal": "rightmove", "url": "https://example.test/b",
                   "address": " 12  HIGH STREET ", "postcode": "cr0 1aa"}
-        with patch.dict("os.environ", {"ATLAS_OPEN_PROPERTIES_ENABLED": "true"}), \
+        with patch.dict("os.environ", {"ATLAS_OPEN_PROPERTIES_ENABLED": "true", "ATLAS_RIGHTMOVE_WRITTEN_PERMISSION": "true"}), \
              patch.object(agent, "_locations", return_value=["Croydon", "Bromley"]), \
              patch.object(agent, "_run", side_effect=[([first], True), ([second], True)]):
             result = agent.discover_open_properties()
@@ -80,14 +80,14 @@ class OpenPropertiesDeduplicationTests(unittest.TestCase):
                  "address": "12 High Street", "postcode": "CR0 1AA"}
         second = {"id": "A2", "portal": "rightmove", "url": "https://example.test/b",
                   "address": "14 High Street", "postcode": "CR0 1AA"}
-        with patch.dict("os.environ", {"ATLAS_OPEN_PROPERTIES_ENABLED": "true"}), \
+        with patch.dict("os.environ", {"ATLAS_OPEN_PROPERTIES_ENABLED": "true", "ATLAS_RIGHTMOVE_WRITTEN_PERMISSION": "true"}), \
              patch.object(agent, "_locations", return_value=["Croydon", "Bromley"]), \
              patch.object(agent, "_run", side_effect=[([first], True), ([second], True)]):
             result = agent.discover_open_properties()
         self.assertEqual(len(result), 2)
 
     def test_malformed_provider_item_marks_scan_incomplete_and_skips_item(self):
-        with patch.dict("os.environ", {"ATLAS_OPEN_PROPERTIES_ENABLED": "true"}), \
+        with patch.dict("os.environ", {"ATLAS_OPEN_PROPERTIES_ENABLED": "true", "ATLAS_RIGHTMOVE_WRITTEN_PERMISSION": "true"}), \
              patch.object(agent, "_locations", return_value=["Croydon"]), \
              patch.object(agent, "_run", return_value=([None, {"id": "A1", "url": "https://example.test/a"}], True)):
             result = agent.discover_open_properties()
@@ -97,7 +97,7 @@ class OpenPropertiesDeduplicationTests(unittest.TestCase):
     def test_missing_identifiers_are_retained_for_manual_review(self):
         first = {"address": "Unknown", "_search_location": "Croydon"}
         second = {"address": "Unknown", "_search_location": "Bromley"}
-        with patch.dict("os.environ", {"ATLAS_OPEN_PROPERTIES_ENABLED": "true"}), \
+        with patch.dict("os.environ", {"ATLAS_OPEN_PROPERTIES_ENABLED": "true", "ATLAS_RIGHTMOVE_WRITTEN_PERMISSION": "true"}), \
              patch.object(agent, "_locations", return_value=["Croydon", "Bromley"]), \
              patch.object(agent, "_run", side_effect=[([first], True), ([second], True)]):
             result = agent.discover_open_properties()
