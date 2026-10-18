@@ -174,7 +174,7 @@ def discover_private_sellers():
                 "Seller Type": "Direct Owner",
                 "Contact Route": "Platform only; human approval required",
 
-                "Area": postcode,
+                "Area": None,
                 "Postcode": postcode,
                 "Location Evidence": f"UK postcode extracted from public listing text: {postcode}" if postcode else None,
                 "Asking Price": price,
