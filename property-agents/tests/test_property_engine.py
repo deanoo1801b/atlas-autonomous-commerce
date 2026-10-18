@@ -494,7 +494,7 @@ class PrivateSellerQualityTests(unittest.TestCase):
         self.assertIsNone(_extract_uk_postcode("A three bedroom home in London with a garden"))
 
     def test_postcode_extraction_normalizes_whitespace(self):
-        self.assertEqual(_extract_uk_postcode("A home at SW1A\\n1AA in London"), "SW1A 1AA")
+        self.assertEqual(_extract_uk_postcode("A home at SW1A\n1AA in London"), "SW1A 1AA")
 
     def test_extracted_postcode_passes_the_geography_gate(self):
         postcode = _extract_uk_postcode("Private owner listing in Croydon CR0 1AA")
