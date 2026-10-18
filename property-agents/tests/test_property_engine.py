@@ -11,10 +11,24 @@ import engine
 
 from engine import _identity_key, _canonical_url, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates, classify_relisting, _property_relisting_key, geography_status, apply_geography_gate
 import open_properties_agent
+import private_seller_agent
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
 from planning_opportunity_agent import analyse_planning_candidate, development_profit_scenario
 from private_seller_agent import _is_sample_listing, _extract_uk_postcode
+
+
+class PrivateSellerSourcePolicyTests(unittest.TestCase):
+    def test_private_seller_sources_are_disabled_without_explicit_approval(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(private_seller_agent._source_is_approved({"name": "Keyzee"}))
+
+    def test_private_seller_source_requires_exact_allowlist_entry(self):
+        with patch.dict(os.environ, {
+            "ATLAS_APPROVED_PRIVATE_SELLER_SOURCES": "Keyzee, OffAgent"
+        }, clear=True):
+            self.assertTrue(private_seller_agent._source_is_approved({"name": "Keyzee"}))
+            self.assertFalse(private_seller_agent._source_is_approved({"name": "Hauski"}))
 
 
 class OpenPropertiesAccessPolicyTests(unittest.TestCase):
