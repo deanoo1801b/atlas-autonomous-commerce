@@ -22,6 +22,16 @@ The engine reads both Smartsheet IDs from GitHub Actions secrets at runtime; IDs
 - FINANCE_OPPORTUNITIES_SHEET_ID: current live Finance Opportunities sheet ID is 890673877438340
 
 
+## Automated Discovery Permission Gates
+
+Automated listing access is disabled unless the relevant permissions have been reviewed:
+- Private seller sources: set `ATLAS_APPROVED_PRIVATE_SELLER_SOURCES` to a comma-separated list of exact source names only after checking current terms, licence and commercial-use rights, and obtaining written permission where required. An empty or missing value disables all private-seller source requests.
+- Rightmove open-market adapter: both `ATLAS_OPEN_PROPERTIES_ENABLED=true` and `ATLAS_RIGHTMOVE_WRITTEN_PERMISSION=true` are required. Rightmove's published terms prohibit automated collection without prior written permission. Do not set the permission flag unless valid permission has actually been obtained.
+- robots.txt is checked as an additional safeguard; it is not a licence to scrape.
+- CI tests use mocked responses and do not run live discovery. The dry-run pipeline may create local review artifacts but must not contact sellers, make offers, refer finance cases, publish, or write to production business systems.
+
+See [SOURCES.md](SOURCES.md) for the source list and access policy.
+
 ## Planning & Development Opportunity Detector
 
 The planning adapter queries the Planning Data API for England using the candidate postcode. It looks for planning records that mention bedroom creation, loft/dormer work, extensions, conversions, subdivisions, annexes and additional dwellings. Same-road and nearby-postcode signals are distinguished where the returned record supports that comparison. Evidence is saved to the candidate Notes and visible summary fields when the existing sheet has those optional columns.
