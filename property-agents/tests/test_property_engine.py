@@ -493,6 +493,13 @@ class PrivateSellerQualityTests(unittest.TestCase):
     def test_postcode_extraction_requires_evidence(self):
         self.assertIsNone(_extract_uk_postcode("A three bedroom home in London with a garden"))
 
+    def test_postcode_extraction_normalizes_whitespace(self):
+        self.assertEqual(_extract_uk_postcode("A home at SW1A\\n1AA in London"), "SW1A 1AA")
+
+    def test_extracted_postcode_passes_the_geography_gate(self):
+        postcode = _extract_uk_postcode("Private owner listing in Croydon CR0 1AA")
+        self.assertEqual(geography_status({"Postcode": postcode}), "In designated area")
+
 
 class DryRunExecutionTests(unittest.TestCase):
     def test_dry_run_performs_discovery_but_never_reads_or_writes_smartsheet(self):
