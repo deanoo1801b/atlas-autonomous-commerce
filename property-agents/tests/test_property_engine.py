@@ -3,6 +3,9 @@ import os
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
+
+import engine
 
 os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
 
@@ -468,6 +471,27 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(result["Reduction Amount"], 35000)
         self.assertEqual(result["Stale Band"], "Stale")
         self.assertIn('"price":465000.0', result["Evidence History"])
+
+
+class DryRunExecutionTests(unittest.TestCase):
+    def test_dry_run_performs_discovery_but_never_reads_or_writes_smartsheet(self):
+        with (
+            patch("engine.discover_private_sellers", return_value=[]) as private_discovery,
+            patch("engine.discover_open_properties", return_value=[]) as open_market_discovery,
+            patch("engine.last_scan_complete", return_value=False),
+            patch("engine.write_review_queue", return_value={"candidate_count": 0}),
+            patch("engine._write_scan_report") as report,
+            patch("engine.get_sheet") as get_sheet,
+            patch("engine.put_rows") as put_rows,
+        ):
+            engine.run()
+
+        private_discovery.assert_called_once_with()
+        open_market_discovery.assert_called_once_with()
+        get_sheet.assert_not_called()
+        put_rows.assert_not_called()
+        report.assert_called_once()
+        self.assertEqual(report.call_args.args[4], "DRY_RUN_DISCOVERY_COMPLETE")
 
 
 if __name__ == "__main__":
