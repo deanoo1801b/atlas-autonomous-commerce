@@ -10,10 +10,29 @@ os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
 import engine
 
 from engine import _identity_key, _canonical_url, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates, classify_relisting, _property_relisting_key, geography_status, apply_geography_gate
+import open_properties_agent
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
 from planning_opportunity_agent import analyse_planning_candidate, development_profit_scenario
 from private_seller_agent import _is_sample_listing, _extract_uk_postcode
+
+
+class OpenPropertiesAccessPolicyTests(unittest.TestCase):
+    def test_rightmove_automation_is_disabled_without_written_permission(self):
+        with patch.dict(os.environ, {"ATLAS_OPEN_PROPERTIES_ENABLED": "true"}, clear=True):
+            self.assertFalse(open_properties_agent._enabled())
+
+    def test_rightmove_automation_requires_both_enablement_and_written_permission(self):
+        with patch.dict(os.environ, {
+            "ATLAS_OPEN_PROPERTIES_ENABLED": "true",
+            "ATLAS_RIGHTMOVE_WRITTEN_PERMISSION": "true",
+        }, clear=True):
+            self.assertTrue(open_properties_agent._enabled())
+        with patch.dict(os.environ, {
+            "ATLAS_OPEN_PROPERTIES_ENABLED": "false",
+            "ATLAS_RIGHTMOVE_WRITTEN_PERMISSION": "true",
+        }, clear=True):
+            self.assertFalse(open_properties_agent._enabled())
 
 
 class GeographyTests(unittest.TestCase):
