@@ -13,6 +13,7 @@ from engine import _identity_key, _canonical_url, _listing_fields, _stale_band, 
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
 from planning_opportunity_agent import analyse_planning_candidate, development_profit_scenario
+from private_seller_agent import _is_sample_listing
 
 
 class GeographyTests(unittest.TestCase):
@@ -471,6 +472,20 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(result["Reduction Amount"], 35000)
         self.assertEqual(result["Stale Band"], "Stale")
         self.assertIn('"price":465000.0', result["Evidence History"])
+
+
+class PrivateSellerQualityTests(unittest.TestCase):
+    def test_sample_listing_is_rejected(self):
+        self.assertTrue(_is_sample_listing("Sample listing, not a real home"))
+
+    def test_demo_property_is_rejected(self):
+        self.assertTrue(_is_sample_listing("Demo property for testing", "https://example.test/homes/1"))
+
+    def test_real_listing_text_is_not_rejected_as_sample(self):
+        self.assertFalse(_is_sample_listing(
+            "Three bedroom home for sale by owner in London, guide price £350,000",
+            "https://example.test/properties/123",
+        ))
 
 
 class DryRunExecutionTests(unittest.TestCase):
