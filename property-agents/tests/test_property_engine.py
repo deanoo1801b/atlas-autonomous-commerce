@@ -13,7 +13,7 @@ from engine import _identity_key, _canonical_url, _listing_fields, _stale_band, 
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
 from planning_opportunity_agent import analyse_planning_candidate, development_profit_scenario
-from private_seller_agent import _is_sample_listing
+from private_seller_agent import _is_sample_listing, _extract_uk_postcode
 
 
 class GeographyTests(unittest.TestCase):
@@ -486,6 +486,12 @@ class PrivateSellerQualityTests(unittest.TestCase):
             "Three bedroom home for sale by owner in London, guide price £350,000",
             "https://example.test/properties/123",
         ))
+
+    def test_extracts_and_normalizes_uk_postcode(self):
+        self.assertEqual(_extract_uk_postcode("A home in London SW1A 1AA, guide price £350,000"), "SW1A 1AA")
+
+    def test_postcode_extraction_requires_evidence(self):
+        self.assertIsNone(_extract_uk_postcode("A three bedroom home in London with a garden"))
 
 
 class DryRunExecutionTests(unittest.TestCase):
