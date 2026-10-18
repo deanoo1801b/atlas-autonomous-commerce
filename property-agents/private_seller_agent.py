@@ -110,14 +110,15 @@ def _candidate_links(source, html):
 
 def _extract_uk_postcode(text: str) -> str | None:
     """Return a normalized UK postcode only when it appears in the public listing text."""
-    pattern = r"\\b(GIR\\s*0AA|(?:[A-PR-UWYZ]\\d{1,2}|[A-PR-UWYZ][A-HK-Y]\\d{1,2}|[A-PR-UWYZ]\\d[A-HJKSTUW]|[A-PR-UWYZ][A-HK-Y]\\d[ABEHMNPRV-Y])\\s*\\d[ABD-HJLNP-UW-Z]{2})\\b"
+    pattern = r"\b(GIR\s*0AA|(?:[A-PR-UWYZ]\d{1,2}|[A-PR-UWYZ][A-HK-Y]\d{1,2}|[A-PR-UWYZ]\d[A-HJKSTUW]|[A-PR-UWYZ][A-HK-Y]\d[ABEHMNPRV-Y])\s*\d[ABD-HJLNP-UW-Z]{2})\b"
     match = re.search(pattern, text or "", re.IGNORECASE)
     if not match:
         return None
-    value = re.sub(r"\\s+", " ", match.group(1).upper()).strip()
+    value = re.sub(r"\s+", " ", match.group(1).upper()).strip()
     if value == "GIR 0AA":
         return value
-    return re.sub(r"^(.*?)(\\d[A-Z]{2})$", r"\\1 \\2", value.replace(" ", ""))
+    compact = value.replace(" ", "")
+    return re.sub(r"^(.*?)(\d[A-Z]{2})$", r"\1 \2", compact)
 
 
 def _is_sample_listing(text: str, url: str = "", label: str = "") -> bool:
