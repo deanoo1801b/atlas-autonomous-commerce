@@ -108,6 +108,18 @@ def _candidate_links(source, html):
             break
     return result
 
+def _extract_uk_postcode(text: str) -> str | None:
+    """Return a normalized UK postcode only when it appears in the public listing text."""
+    pattern = r"\\b(GIR\\s*0AA|(?:[A-PR-UWYZ]\\d{1,2}|[A-PR-UWYZ][A-HK-Y]\\d{1,2}|[A-PR-UWYZ]\\d[A-HJKSTUW]|[A-PR-UWYZ][A-HK-Y]\\d[ABEHMNPRV-Y])\\s*\\d[ABD-HJLNP-UW-Z]{2})\\b"
+    match = re.search(pattern, text or "", re.IGNORECASE)
+    if not match:
+        return None
+    value = re.sub(r"\\s+", " ", match.group(1).upper()).strip()
+    if value == "GIR 0AA":
+        return value
+    return re.sub(r"^(.*?)(\\d[A-Z]{2})$", r"\\1 \\2", value.replace(" ", ""))
+
+
 def _is_sample_listing(text: str, url: str = "", label: str = "") -> bool:
     """Reject obvious demo/test/sample pages before treating them as real property leads."""
     combined = re.sub(r"\s+", " ", f"{label} {url} {text}").lower()
@@ -152,6 +164,7 @@ def discover_private_sellers():
             if not private_signal:
                 continue
             price = _price(text)
+            postcode = _extract_uk_postcode(text)
             digest = hashlib.sha256(url.encode()).hexdigest()[:16]
             candidates.append({
                 "Lead ID": f"PS-{digest}",
@@ -160,7 +173,9 @@ def discover_private_sellers():
                 "Seller Type": "Direct Owner",
                 "Contact Route": "Platform only; human approval required",
 
-                "Area": None,
+                "Area": postcode,
+                "Postcode": postcode,
+                "Location Evidence": f"UK postcode extracted from public listing text: {postcode}" if postcode else None,
                 "Asking Price": price,
                 "Seller Name": None,
                 "Source": source["name"],
