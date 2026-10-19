@@ -14,15 +14,20 @@ class LeadQueueExportTests(unittest.TestCase):
             {"Lead ID": "P3", "Lead Type": "Developer Site", "Opportunity Type": "Development"},
             {"Lead ID": "F1", "Lead Type": "Finance Enquiry", "Opportunity Type": "Bridging"},
             {"Lead ID": "A1", "Lead Type": "Auction", "Opportunity Type": "Property Acquisition"},
+            {"Lead ID": "B1", "Lead Type": "Auction", "Asking Price": "£150,000", "Estimated Market Value": "200000", "Comparable Sales Count": 3},
         ]
         with tempfile.TemporaryDirectory() as tmp:
             result = export_review_queues(candidates, tmp)
-            self.assertEqual(result["candidate_count"], 5)
+            self.assertEqual(result["candidate_count"], 6)
             self.assertEqual(result["queues"]["private_seller_review.csv"]["count"], 1)
             self.assertEqual(result["queues"]["open_market_review.csv"]["count"], 1)
             self.assertEqual(result["queues"]["development_review.csv"]["count"], 1)
             self.assertEqual(result["queues"]["finance_review.csv"]["count"], 1)
             self.assertEqual(result["queues"]["property_acquisition_review.csv"]["count"], 1)
+            self.assertEqual(result["queues"]["bmv_review.csv"]["count"], 1)
+            with (Path(tmp) / "bmv_review.csv").open(encoding="utf-8-sig", newline="") as handle:
+                bmv_rows = list(csv.DictReader(handle))
+            self.assertIn("PRELIMINARY BMV REVIEW FLAG", bmv_rows[0]["Comparable Evidence Status"])
             for filename in result["queues"]:
                 self.assertTrue((Path(tmp) / filename).exists())
 
