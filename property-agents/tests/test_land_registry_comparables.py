@@ -46,6 +46,44 @@ class LandRegistryComparablesTests(unittest.TestCase):
         self.assertTrue(result[0]["source_url"].startswith("https://"))
         self.assertIn("HM Land Registry", result[0]["evidence_source"])
 
+    def test_candidate_enrichment_is_disabled_by_default(self):
+        from unittest.mock import Mock
+        fetcher = Mock()
+        candidates = [{"Postcode": "CR0 1AA", "Property Type": "detached"}]
+        result = module.enrich_candidates_with_sold_comparables(
+            candidates, enabled=False, fetcher=fetcher
+        )
+        self.assertFalse(result["enabled"])
+        fetcher.assert_not_called()
+        self.assertNotIn("Comparable Sales Evidence", candidates[0])
+
+    def test_candidate_enrichment_caches_outcode_and_type_and_preserves_attribution(self):
+        from unittest.mock import Mock
+        fetcher = Mock(return_value={
+            "comparables": [{
+                "sold_price": 350000,
+                "sale_date": date.today().isoformat(),
+                "source_url": "https://landregistry.data.gov.uk/data/ppi/transaction/example",
+                "postcode": "CR0 1AA",
+                "property_type": "detached",
+            }],
+            "attribution": module.ATTRIBUTION,
+            "limitations": ["Human review required"],
+        })
+        candidates = [
+            {"Postcode": "CR0 1AA", "Property Type": "detached"},
+            {"Postcode": "CR0 1AB", "Property Type": "detached"},
+        ]
+        result = module.enrich_candidates_with_sold_comparables(
+            candidates, enabled=True, max_lookups=2, fetcher=fetcher
+        )
+        self.assertEqual(result["lookups"], 1)
+        self.assertEqual(result["enriched"], 2)
+        fetcher.assert_called_once()
+        self.assertEqual(candidates[0]["Comparable Sales Count"], 1)
+        self.assertIn("human comparability review", candidates[0]["Comparable Evidence Status"])
+        self.assertIn("Crown copyright", candidates[0]["Notes"])
+
     def test_fetch_posts_bounded_query_and_returns_attribution(self):
         response = Mock()
         response.raise_for_status.return_value = None
