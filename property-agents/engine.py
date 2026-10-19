@@ -8,6 +8,7 @@ from motivated_seller_agent import motivation_score, motivation_trend
 from planning_opportunity_agent import analyse_planning_candidate, development_profit_scenario
 from property_route_review import write_review_queue
 from land_registry_comparables import enrich_candidates_with_sold_comparables
+from lead_queue_export import export_review_queues
 
 BASE = "https://api.smartsheet.com/2.0"
 TOKEN = os.getenv("SMARTSHEET_API_TOKEN", "").strip()
@@ -452,6 +453,9 @@ def run():
         # Local audit artifact only; no route data is written to Smartsheet.
         route_review = write_review_queue(discovered, scan_id)
         print(f"Contract route review queue created for {route_review['candidate_count']} candidates; no commitments or outreach performed.")
+        queue_export = export_review_queues(discovered)
+        queue_counts = ', '.join(f"{name}={details['count']}" for name, details in queue_export['queues'].items())
+        print(f"Local CSV review queues exported to {queue_export['directory']}: {queue_counts}; no contact, offers, referrals, publishing, or production writes performed.")
 
         # Dry-run is discovery-only: finish public-source scans and local artifacts,
         # then stop before any Smartsheet read/write or finance pipeline mutation.
