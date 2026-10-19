@@ -292,13 +292,13 @@ class RemovalGateTests(unittest.TestCase):
         )
 
 class ScanAuditTests(unittest.TestCase):
-    def _read_report(self, status, error=None):
+    def _read_report(self, status, error=None, source_audit=None):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "scan.json")
             old = os.environ.get("ATLAS_SCAN_REPORT_PATH")
             os.environ["ATLAS_SCAN_REPORT_PATH"] = path
             try:
-                _write_scan_report("SCAN-TEST", 12, 9, True, status, error=error)
+                _write_scan_report("SCAN-TEST", 12, 9, True, status, error=error, source_audit=source_audit)
                 with open(path, encoding="utf-8") as fh:
                     return json.load(fh)
             finally:
@@ -315,6 +315,15 @@ class ScanAuditTests(unittest.TestCase):
         self.assertTrue(report["open_market_scan_complete"])
         self.assertEqual(report["status"], "SUCCESS")
         self.assertIsNone(report["error"])
+
+    def test_scan_audit_preserves_private_seller_source_statuses(self):
+        source_audit = {
+            "approved_source_count": 0,
+            "candidate_count": 0,
+            "sources": [{"source": "Keyzee", "status": "disabled_not_allowlisted", "listing_pages_checked": 0, "verified_candidates": 0}],
+        }
+        report = self._read_report("DRY_RUN_DISCOVERY_COMPLETE", source_audit=source_audit)
+        self.assertEqual(report["private_seller_source_audit"], source_audit)
 
     def test_failed_audit_preserves_error(self):
         report = self._read_report("FAILED", "RuntimeError: test failure")
