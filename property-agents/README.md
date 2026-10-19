@@ -46,7 +46,7 @@ print(result["comparables"])
 print(result["attribution"])
 ```
 
-The module is not wired into scheduled discovery and does not run during CI; call it explicitly when a reviewer has a candidate postcode and property type. It makes one bounded request to the official linked-data endpoint. A record is not automatically a qualifying comparable: check exact location, size, tenure, condition, and sale circumstances. Do not infer current ownership or seller motivation from sold-price records.
+The engine can enrich the local review queue with this evidence when explicitly enabled by setting `ATLAS_HMLR_COMPARABLES_ENABLED=true`. It is disabled by default. `ATLAS_HMLR_COMPARABLES_MAX_LOOKUPS` sets the per-run cap (1–25; default 10); lookups are cached by postcode outcode and property type within a run. CI uses mocked responses and does not call the live endpoint. A record is not automatically a qualifying comparable: check exact location, size, tenure, condition, and sale circumstances. Do not infer current ownership or seller motivation from sold-price records.
 
 When presenting or publishing Price Paid Data, retain this attribution: "Contains HM Land Registry data © Crown copyright and database right 2021. Licensed under the Open Government Licence v3.0." Review the current dataset terms, including restrictions affecting address data, before redistributing derived data.
 
