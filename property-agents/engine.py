@@ -2,7 +2,7 @@ import os, re, hashlib, time, json, math
 from datetime import datetime, timezone
 from urllib.parse import urlsplit, urlunsplit
 import requests
-from private_seller_agent import discover_private_sellers
+from private_seller_agent import discover_private_sellers, last_discovery_report
 from open_properties_agent import discover_open_properties, to_property_lead, last_scan_complete
 from motivated_seller_agent import motivation_score, motivation_trend
 from planning_opportunity_agent import analyse_planning_candidate, development_profit_scenario
@@ -354,7 +354,7 @@ def removal_updates(rows, cmap, seen_identities, scan_complete, scan_id):
             updates.append({"id": row["id"], "cells": cells})
     return updates
 
-def _write_scan_report(scan_id, discovered_count, open_market_count, open_market_scan_complete, status, error=None):
+def _write_scan_report(scan_id, discovered_count, open_market_count, open_market_scan_complete, status, error=None, source_audit=None):
     payload = {
         "scan_id": scan_id,
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -363,6 +363,7 @@ def _write_scan_report(scan_id, discovered_count, open_market_count, open_market
         "open_market_scan_complete": bool(open_market_scan_complete),
         "status": status,
         "error": error,
+        "private_seller_source_audit": source_audit or {"sources": [], "approved_source_count": 0, "candidate_count": 0},
     }
     path = os.getenv("ATLAS_SCAN_REPORT_PATH", "property-agent-scan-report.json")
     try:
@@ -461,6 +462,7 @@ def run():
                 len(open_market),
                 open_market_scan_complete,
                 "DRY_RUN_DISCOVERY_COMPLETE",
+                source_audit=last_discovery_report(),
             )
             print(
                 f"Dry-run discovery complete: {len(discovered)} candidates "
