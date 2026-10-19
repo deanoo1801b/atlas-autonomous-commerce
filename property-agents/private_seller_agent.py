@@ -29,6 +29,13 @@ SOURCES = [
 
 UA = "InspirationPropertiesPublicListingAgent/1.0 (+public-listing-discovery)"
 
+_LAST_DISCOVERY_REPORT: dict = {"sources": [], "approved_source_count": 0, "candidate_count": 0}
+
+
+def last_discovery_report() -> dict:
+    """Return a copy of this run source-policy audit without listing content."""
+    return json.loads(json.dumps(_LAST_DISCOVERY_REPORT))
+
 class LinkParser(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -146,29 +153,43 @@ def _source_is_approved(source: dict) -> bool:
 
 
 def discover_private_sellers():
+    global _LAST_DISCOVERY_REPORT
     candidates = []
+    report = {"sources": [], "approved_source_count": 0, "candidate_count": 0}
     for source in SOURCES:
-        # robots.txt is not a licence. Do not automate a source until its terms/API
-        # permissions have been reviewed and its name explicitly allowlisted.
+        source_report = {
+            "source": str(source.get("name") or "Unknown"),
+            "status": "not_checked",
+            "listing_pages_checked": 0,
+            "verified_candidates": 0,
+        }
+        # robots.txt is not a licence. Explicit operator approval is still required.
         if not _source_is_approved(source):
+            source_report["status"] = "disabled_not_allowlisted"
+            report["sources"].append(source_report)
             continue
+        report["approved_source_count"] += 1
         index_html = _fetch(source["index"])
         if not index_html:
+            source_report["status"] = "index_unavailable_or_blocked"
+            report["sources"].append(source_report)
             continue
-        for label, url in _candidate_links(source, index_html):
+        links = _candidate_links(source, index_html)
+        source_report["listing_pages_checked"] = len(links)
+        if not links:
+            source_report["status"] = "index_scanned_no_candidate_links"
+            report["sources"].append(source_report)
+            continue
+        for label, url in links:
             html = _fetch(url)
             if not html:
                 continue
-            text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html)).strip()
+            text = re.sub(r"\\s+", " ", re.sub(r"<[^>]+>", " ", html)).strip()
             if len(text) < 40:
                 continue
             low = text.lower()
-            # Exclude platform demo data; a sample page must never become a seller lead.
             if _is_sample_listing(text, url, label):
                 continue
-            # Require listing-level evidence, even on owner-focused platforms:
-            # platform positioning alone does not prove that this individual listing
-            # is genuinely being offered directly by its owner.
             private_signal = any(k in low for k in (
                 "private seller", "owner listed", "owner-listed", "sell privately",
                 "directly by the owner", "private vendor", "homeowner",
@@ -188,7 +209,6 @@ def discover_private_sellers():
                 "Opportunity Type": "Private Sale",
                 "Seller Type": "Direct Owner",
                 "Contact Route": "Platform only; human approval required",
-
                 "Area": None,
                 "Postcode": postcode,
                 "Location Evidence": f"UK postcode extracted from public listing text: {postcode}" if postcode else None,
@@ -201,7 +221,15 @@ def discover_private_sellers():
                 "Do Not Contact": False,
                 "Finance Candidate": "Review",
             })
+            source_report["verified_candidates"] += 1
             time.sleep(0.5)
+        source_report["status"] = (
+            "candidate_evidence_found" if source_report["verified_candidates"]
+            else "pages_checked_no_verified_owner_evidence"
+        )
+        report["sources"].append(source_report)
+    report["candidate_count"] = len(candidates)
+    _LAST_DISCOVERY_REPORT = report
     return candidates
 
 if __name__ == "__main__":
