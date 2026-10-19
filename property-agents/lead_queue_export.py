@@ -17,6 +17,19 @@ FIELDS = (
     "Compliance Status", "Notes",
 )
 
+def _bmv_review_candidate(row: dict[str, Any]) -> bool:
+    """Flag for review only when supplied values imply 25%+ discount and 3+ comp records."""
+    try:
+        asking = float(str(row.get("Asking Price") or row.get("Current Asking Price") or "").replace(",", "").replace("£", "").strip())
+        market = float(str(row.get("Estimated Market Value") or "").replace(",", "").replace("£", "").strip())
+        comps = int(float(str(row.get("Comparable Sales Count") or "0").strip()))
+    except (TypeError, ValueError, OverflowError):
+        return False
+    if asking <= 0 or market <= 0 or comps < 3:
+        return False
+    return (market - asking) / market * 100 >= 25
+
+
 QUEUE_RULES = {
     "private_seller_review.csv": lambda row: (
         "private" in _text(row, "Lead Type") or "private" in _text(row, "Source")
@@ -35,6 +48,7 @@ QUEUE_RULES = {
         or "mortgage" in _text(row, "Opportunity Type")
         or "bridging" in _text(row, "Opportunity Type")
     ),
+    "bmv_review.csv": _bmv_review_candidate,
 }
 
 
@@ -56,7 +70,7 @@ def export_review_queues(
     candidates: list[dict[str, Any]],
     directory: str | os.PathLike[str] | None = None,
 ) -> dict[str, Any]:
-    """Write four CSV review queues; unmatched rows remain in the general acquisition queue."""
+    """Write separated CSV review queues; unmatched rows remain in the general acquisition queue."""
     destination = Path(directory or os.getenv("ATLAS_LEAD_QUEUE_EXPORT_DIR", "."))
     destination.mkdir(parents=True, exist_ok=True)
     queues: dict[str, list[dict[str, Any]]] = {name: [] for name in QUEUE_RULES}
@@ -65,7 +79,10 @@ def export_review_queues(
         matched = False
         for name, predicate in QUEUE_RULES.items():
             if predicate(candidate):
-                queues[name].append(candidate)
+                row = dict(candidate)
+                if name == "bmv_review.csv":
+                    row["Comparable Evidence Status"] = (str(row.get("Comparable Evidence Status") or "") + " | PRELIMINARY BMV REVIEW FLAG — discount arithmetic only; human valuation review required").strip(" |")
+                queues[name].append(row)
                 matched = True
         if not matched:
             queues["property_acquisition_review.csv"].append(candidate)
