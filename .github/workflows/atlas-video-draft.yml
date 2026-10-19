@@ -44,10 +44,10 @@ jobs:
           sudo apt-get install -y ffmpeg espeak librsvg2-bin
       - name: Render draft video
         env:
-          VIDEO_TOPIC: ${{ inputs.topic }}
-          VIDEO_PRODUCT_PRICE: ${{ inputs.product_price }}
-          VIDEO_PRODUCT_URL: ${{ inputs.product_url }}
-          VIDEO_PRODUCT_IMAGE_URL: ${{ inputs.product_image_url }}
+          VIDEO_TOPIC: ${{ inputs.topic || 'Long Handle Floor Scrub Brush with Squeegee' }}
+          VIDEO_PRODUCT_PRICE: ${{ inputs.product_price || '£14.99' }}
+          VIDEO_PRODUCT_URL: ${{ inputs.product_url || 'https://atlasgoodsstore.co.uk/products/long-handle-floor-scrub-brush-with-squeegee' }}
+          VIDEO_PRODUCT_IMAGE_URL: ${{ inputs.product_image_url || 'https://cdn.shopify.com/s/files/1/0833/5284/6562/files/long-handle-floor-scrub-brush.png?v=1789778185' }}
         run: node scripts/render-video-draft.mjs
       - name: Upload draft MP4 and caption
         uses: actions/upload-artifact@v4
