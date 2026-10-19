@@ -10,6 +10,10 @@ class LandRegistryComparablesTests(unittest.TestCase):
         self.assertEqual(module.postcode_outcode("cr0 1aa"), "CR0")
         self.assertEqual(module.postcode_outcode("SW1A 1AA"), "SW1A")
 
+    def test_postcode_outcode_accepts_compact_postcode(self):
+        self.assertEqual(module.postcode_outcode("CR01AA"), "CR0")
+        self.assertEqual(module.postcode_outcode("SW1A1AA"), "SW1A")
+
     def test_postcode_outcode_rejects_unverified_place_name(self):
         self.assertIsNone(module.postcode_outcode("Croydon, London"))
 
