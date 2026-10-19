@@ -145,7 +145,7 @@ def normalize_results(payload: dict[str, Any], outcode: str, property_type: str,
 def enrich_candidates_with_sold_comparables(candidates: list[dict[str, Any]], *,
                                             enabled: bool | None = None,
                                             max_lookups: int = 10,
-                                            fetcher: Any = fetch_sold_comparables) -> dict[str, Any]:
+                                            fetcher: Any = None) -> dict[str, Any]:
     """Optionally enrich candidate records with official sold evidence, never a valuation.
 
     Disabled by default. Caches each outcode/property-type lookup during this run.
@@ -153,6 +153,8 @@ def enrich_candidates_with_sold_comparables(candidates: list[dict[str, Any]], *,
     import json
     import os
 
+    if fetcher is None:
+        fetcher = fetch_sold_comparables
     if enabled is None:
         enabled = os.getenv("ATLAS_HMLR_COMPARABLES_ENABLED", "").strip().lower() in {
             "1", "true", "yes", "on"
