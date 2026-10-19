@@ -60,13 +60,16 @@ class LandRegistryComparablesTests(unittest.TestCase):
     def test_candidate_enrichment_caches_outcode_and_type_and_preserves_attribution(self):
         from unittest.mock import Mock
         fetcher = Mock(return_value={
-            "comparables": [{
-                "sold_price": 350000,
-                "sale_date": date.today().isoformat(),
-                "source_url": "https://landregistry.data.gov.uk/data/ppi/transaction/example",
-                "postcode": "CR0 1AA",
-                "property_type": "detached",
-            }],
+            "comparables": [
+                {
+                    "sold_price": 350000 + index * 1000,
+                    "sale_date": date.today().isoformat(),
+                    "source_url": f"https://landregistry.data.gov.uk/data/ppi/transaction/example-{index}",
+                    "postcode": f"CR0 1A{index}",
+                    "property_type": "detached",
+                }
+                for index in range(1, 4)
+            ],
             "attribution": module.ATTRIBUTION,
             "limitations": ["Human review required"],
         })
@@ -80,7 +83,7 @@ class LandRegistryComparablesTests(unittest.TestCase):
         self.assertEqual(result["lookups"], 1)
         self.assertEqual(result["enriched"], 2)
         fetcher.assert_called_once()
-        self.assertEqual(candidates[0]["Comparable Sales Count"], 1)
+        self.assertEqual(candidates[0]["Comparable Sales Count"], 3)
         self.assertIn("human comparability review", candidates[0]["Comparable Evidence Status"])
         self.assertIn("Crown copyright", candidates[0]["Notes"])
 
