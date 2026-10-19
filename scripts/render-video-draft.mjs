@@ -1,79 +1,39 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-
-const requestedTopic = (process.env.VIDEO_TOPIC || "Long Handle Floor Scrub Brush with Squeegee").trim().slice(0, 180);
-const fallbackPrice = (process.env.VIDEO_PRODUCT_PRICE || "£14.99").trim().slice(0, 32);
-const productUrl = (process.env.VIDEO_PRODUCT_URL || "https://atlasgoodsstore.co.uk/products/long-handle-floor-scrub-brush-with-squeegee").trim().replace(/\/$/, "");
-const fallbackImageUrl = (process.env.VIDEO_PRODUCT_IMAGE_URL || "https://cdn.shopify.com/s/files/1/0833/5284/6562/files/long-handle-floor-scrub-brush.png?v=1789778185").trim();
-const brand = "ATLAS GOODS STORE";
-const outDir = "video-output";
-fs.mkdirSync(outDir, { recursive: true });
-if (!/^https:\/\/atlasgoodsstore\.co\.uk\/products\/[a-z0-9-]+$/i.test(productUrl)) throw new Error("Product URL must be an Atlas Goods Store product page.");
-let topic = requestedTopic;
-let price = fallbackPrice;
-let imageUrl = fallbackImageUrl;
-const productResponse = await fetch(productUrl + ".js", { signal: AbortSignal.timeout(15000) }).catch(() => null);
-if (productResponse && productResponse.ok) {
-  const product = await productResponse.json();
-  if (typeof product.title === "string") topic = product.title.slice(0, 180);
-  if (typeof product.price === "number") price = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(product.price / 100);
-  if (Array.isArray(product.images) && product.images[0]) imageUrl = String(product.images[0]);
-} else {
-  console.log("Shopify product JSON endpoint unavailable; using the explicit workflow inputs for title, price and image.");
-}
-if (!/^https:\/\/cdn\.shopify\.com\//i.test(imageUrl)) throw new Error("Product image must be a public HTTPS Shopify CDN URL.");
-const imageResponse = await fetch(imageUrl, { signal: AbortSignal.timeout(15000) });
-if (!imageResponse.ok) throw new Error("Product image download failed: HTTP " + imageResponse.status);
-const imageType = (imageResponse.headers.get("content-type") || "").toLowerCase();
-const imageExt = imageType.includes("png") ? "png" : imageType.includes("webp") ? "webp" : "jpg";
-const productImagePath = outDir + "/product-image." + imageExt;
-fs.writeFileSync(productImagePath, Buffer.from(await imageResponse.arrayBuffer()));
-
-function esc(s) {
-  return s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&apos;");
-}
-function wrap(text, max = 24) {
-  const words = text.split(/\s+/);
-  const lines = [];
-  let line = "";
-  for (const word of words) {
-    if ((line + " " + word).trim().length > max && line) {
-      lines.push(line);
-      line = word;
-    } else line = (line + " " + word).trim();
-  }
-  if (line) lines.push(line);
-  return lines.slice(0, 4);
-}
-const scenes = [
-  { heading: "A PRACTICAL EVERYDAY PICK", sub: requestedTopic || topic },
-  { heading: "DESIGNED FOR THE TASK", sub: "A handy option for your cleaning routine." },
-  { heading: "CLEAR PRICE. SIMPLE SHOPPING.", sub: price },
-  { heading: "SHOP ATLAS GOODS STORE", sub: "Free UK shipping." },
-  { heading: "DISCOVER THIS PRODUCT", sub: "Tap through to view the details." }
+const topic=(process.env.VIDEO_TOPIC||"Long Handle Floor Scrub Brush with Squeegee").trim().slice(0,180);
+const price=(process.env.VIDEO_PRODUCT_PRICE||"£14.99").trim().slice(0,32);
+const url=(process.env.VIDEO_PRODUCT_URL||"https://atlasgoodsstore.co.uk/products/long-handle-floor-scrub-brush-with-squeegee").trim().replace(/\/$/,"");
+const image=(process.env.VIDEO_PRODUCT_IMAGE_URL||"https://cdn.shopify.com/s/files/1/0833/5284/6562/files/long-handle-floor-scrub-brush.png?v=1789778185").trim();
+const out="video-output";fs.mkdirSync(out,{recursive:true});
+if(!/^https:\/\/atlasgoodsstore\.co\.uk\/products\/[a-z0-9-]+$/i.test(url))throw Error("Invalid Atlas product URL");
+let title=topic,actualPrice=price,img=image;
+const response=await fetch(url+".js",{signal:AbortSignal.timeout(12000)}).catch(()=>null);
+if(response?.ok){const p=await response.json();if(p.title)title=String(p.title).slice(0,180);if(typeof p.price==="number")actualPrice=new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(p.price/100);if(p.images?.[0])img=String(p.images[0]);}
+if(!/^https:\/\/cdn\.shopify\.com\//i.test(img))throw Error("Only Shopify CDN product images are allowed");
+const ir=await fetch(img,{signal:AbortSignal.timeout(15000)});if(!ir.ok)throw Error("Product image HTTP "+ir.status);
+const type=(ir.headers.get("content-type")||"").toLowerCase(),ext=type.includes("png")?"png":type.includes("webp")?"webp":"jpg";
+const imagePath=out+"/product."+ext;fs.writeFileSync(imagePath,Buffer.from(await ir.arrayBuffer()));
+const esc=s=>s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
+const scenes=[
+["A BETTER CLEANING ROUTINE",title],
+["BRUSH + SQUEEGEE","Two functions in one handy design"],
+["TAKE A CLOSER LOOK","See product details on our store"],
+[actualPrice,"Check the listing for current details"],
+["FREE UK SHIPPING","Shop Atlas Goods Store"],
+["YOUR HOME. YOUR WAY.","Explore the range at Atlas Goods Store"]
 ];
-
-const clipPaths = [];
-for (let i = 0; i < scenes.length; i++) {
-  const s = scenes[i];
-  const lines = wrap(s.sub);
-  const subtitle = lines.map((line, j) =>
-    `<text x="540" y="${1370 + j * 54}" text-anchor="middle" font-family="DejaVu Sans" font-size="40" fill="#f5f5f5">${esc(line)}</text>`
-  ).join("");
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#101b36"/><stop offset="100%" stop-color="#80662b"/></linearGradient></defs><rect width="1080" height="1920" fill="url(#g)"/><circle cx="540" cy="540" r="240" fill="none" stroke="#d6bd75" stroke-width="3" opacity=".7"/><circle cx="540" cy="540" r="190" fill="none" stroke="#d6bd75" stroke-width="2" opacity=".45"/><text x="540" y="220" text-anchor="middle" font-family="DejaVu Sans" font-size="32" letter-spacing="8" fill="#d6bd75">${brand}</text><text x="540" y="720" text-anchor="middle" font-family="DejaVu Sans" font-size="54" font-weight="bold" fill="#ffffff">${esc(s.heading)}</text>${subtitle}<text x="540" y="1700" text-anchor="middle" font-family="DejaVu Sans" font-size="28" fill="#d6bd75">UK STORE • FREE UK SHIPPING</text><text x="540" y="1780" text-anchor="middle" font-family="DejaVu Sans" font-size="25" fill="#ffffff">ATLASGOODSSTORE.CO.UK</text><text x="1000" y="1850" text-anchor="end" font-family="DejaVu Sans" font-size="24" fill="#ffffff">${String(i + 1).padStart(2, "0")} / ${scenes.length}</text></svg>`;
-  const svgPath = `${outDir}/scene-${i + 1}.svg`;
-  const pngPath = `${outDir}/scene-${i + 1}.png`;
-  const wavPath = `${outDir}/scene-${i + 1}.wav`;
-  const mp4Path = `${outDir}/scene-${i + 1}.mp4`;
-  fs.writeFileSync(svgPath, svg);
-  execFileSync("rsvg-convert", ["-o", pngPath, svgPath]);
-  execFileSync("espeak", ["-s", "145", "-w", wavPath, `${s.heading}. ${s.sub}`]);
-  execFileSync("ffmpeg", ["-y", "-loop", "1", "-i", pngPath, "-loop", "1", "-i", productImagePath, "-i", wavPath, "-filter_complex", "[1:v]scale=700:520:force_original_aspect_ratio=decrease,pad=700:520:(ow-iw)/2:(oh-ih)/2:color=white[prod];[0:v][prod]overlay=(W-w)/2:800,format=yuv420p[v]", "-map", "[v]", "-map", "2:a", "-c:v", "libx264", "-tune", "stillimage", "-c:a", "aac", "-shortest", "-pix_fmt", "yuv420p", mp4Path], { stdio: "inherit" });
-  clipPaths.push(mp4Path);
+const clips=[];
+for(let i=0;i<scenes.length;i++){
+ const [head,sub]=scenes[i];
+ const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#101828"/><stop offset="1" stop-color="#34465e"/></linearGradient></defs><rect width="1080" height="1920" fill="url(#g)"/><text x="540" y="130" text-anchor="middle" font-family="DejaVu Sans" font-size="29" letter-spacing="5" fill="#e4c879">ATLAS GOODS STORE</text><rect x="65" y="200" width="950" height="1110" rx="38" fill="#fff"/><text x="540" y="1400" text-anchor="middle" font-family="DejaVu Sans" font-size="48" font-weight="bold" fill="#e4c879">${esc(head)}</text><text x="540" y="1485" text-anchor="middle" font-family="DejaVu Sans" font-size="34" fill="#fff" stroke="#101828" stroke-width="1" paint-order="stroke">${esc(sub.slice(0,58))}</text><text x="540" y="1770" text-anchor="middle" font-family="DejaVu Sans" font-size="27" fill="#e4c879">FREE UK SHIPPING</text><text x="540" y="1830" text-anchor="middle" font-family="DejaVu Sans" font-size="24" fill="#fff">ATLASGOODSSTORE.CO.UK</text></svg>`;
+ const svgPath=`${out}/scene-${i}.svg`,png=`${out}/scene-${i}.png`,mp4=`${out}/scene-${i}.mp4`;
+ fs.writeFileSync(svgPath,svg);execFileSync("rsvg-convert",["-o",png,svgPath]);
+ const filter="[0:v]scale=1080:1920[bg];[1:v]scale=900:1000:force_original_aspect_ratio=decrease,pad=900:1000:(ow-iw)/2:(oh-ih)/2:color=white,zoompan=z='min(zoom+0.001,1.04)':d=75:s=900x1000:fps=25,setsar=1[product];[bg][product]overlay=90:255,format=yuv420p[v]";
+ execFileSync("ffmpeg",["-y","-loop","1","-i",png,"-loop","1","-i",imagePath,"-filter_complex",filter,"-map","[v]","-t","3","-an","-r","25","-c:v","libx264","-preset","veryfast","-crf","21","-pix_fmt","yuv420p",mp4],{stdio:"inherit"});
+ clips.push(mp4);
 }
-const listPath = `${outDir}/concat.txt`;
-fs.writeFileSync(listPath, clipPaths.map(p => `file '${path.basename(p)}'`).join("\n"));
-execFileSync("ffmpeg", ["-y", "-f", "concat", "-safe", "0", "-i", listPath, "-c", "copy", "-movflags", "+faststart", `${outDir}/atlas-video-draft.mp4`], { stdio: "inherit" });
-fs.writeFileSync(outDir + "/CAPTION.txt", topic + " — " + price + "\n\nView product details: " + productUrl + "\n\nFree UK shipping from Atlas Goods Store.\n\n#AtlasGoodsStore #UKShopping #HomeEssentials\n\nDRAFT ONLY: Check current price, stock, delivery terms and final edit before publishing. This prototype uses the product image and synthetic speech; it does not auto-publish.\n");
-console.log("Created video-output/atlas-video-draft.mp4");
+const list=out+"/concat.txt";fs.writeFileSync(list,clips.map(p=>`file '${path.basename(p)}'`).join("\n"));
+execFileSync("ffmpeg",["-y","-f","concat","-safe","0","-i",list,"-c","copy","-movflags","+faststart",out+"/atlas-video-draft.mp4"],{stdio:"inherit"});
+fs.writeFileSync(out+"/CAPTION.txt",title+" — "+actualPrice+"\n\nView product details: "+url+"\n\nFree UK shipping from Atlas Goods Store.\n\n#AtlasGoodsStore #UKShopping #HomeEssentials\n\nDRAFT ONLY: visual-first edit with no synthetic narration. Verify price, stock and delivery terms before publishing.\n");
+console.log("Created silent visual-first product video");
