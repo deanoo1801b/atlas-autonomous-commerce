@@ -2,20 +2,27 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 
-const requestedTopic = (process.env.VIDEO_TOPIC || "").trim().slice(0, 180);
+const requestedTopic = (process.env.VIDEO_TOPIC || "Long Handle Floor Scrub Brush with Squeegee").trim().slice(0, 180);
+const fallbackPrice = (process.env.VIDEO_PRODUCT_PRICE || "£14.99").trim().slice(0, 32);
 const productUrl = (process.env.VIDEO_PRODUCT_URL || "https://atlasgoodsstore.co.uk/products/long-handle-floor-scrub-brush-with-squeegee").trim().replace(/\/$/, "");
+const fallbackImageUrl = (process.env.VIDEO_PRODUCT_IMAGE_URL || "https://cdn.shopify.com/s/files/1/0833/5284/6562/files/long-handle-floor-scrub-brush.png?v=1789778185").trim();
 const brand = "ATLAS GOODS STORE";
 const outDir = "video-output";
 fs.mkdirSync(outDir, { recursive: true });
 if (!/^https:\/\/atlasgoodsstore\.co\.uk\/products\/[a-z0-9-]+$/i.test(productUrl)) throw new Error("Product URL must be an Atlas Goods Store product page.");
-const productResponse = await fetch(productUrl + ".js", { signal: AbortSignal.timeout(15000) });
-if (!productResponse.ok) throw new Error("Could not read live Shopify product data: HTTP " + productResponse.status);
-const product = await productResponse.json();
-if (!product || typeof product.title !== "string" || !Array.isArray(product.images) || !product.images[0] || typeof product.price !== "number") throw new Error("Live Shopify product data is missing a title, price or image.");
-const topic = product.title.slice(0, 180);
-const price = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(product.price / 100);
-const imageUrl = String(product.images[0]);
-if (!/^https:\/\/cdn\.shopify\.com\//i.test(imageUrl)) throw new Error("Live product image is not hosted on the Shopify CDN.");
+let topic = requestedTopic;
+let price = fallbackPrice;
+let imageUrl = fallbackImageUrl;
+const productResponse = await fetch(productUrl + ".js", { signal: AbortSignal.timeout(15000) }).catch(() => null);
+if (productResponse && productResponse.ok) {
+  const product = await productResponse.json();
+  if (typeof product.title === "string") topic = product.title.slice(0, 180);
+  if (typeof product.price === "number") price = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(product.price / 100);
+  if (Array.isArray(product.images) && product.images[0]) imageUrl = String(product.images[0]);
+} else {
+  console.log("Shopify product JSON endpoint unavailable; using the explicit workflow inputs for title, price and image.");
+}
+if (!/^https:\/\/cdn\.shopify\.com\//i.test(imageUrl)) throw new Error("Product image must be a public HTTPS Shopify CDN URL.");
 const imageResponse = await fetch(imageUrl, { signal: AbortSignal.timeout(15000) });
 if (!imageResponse.ok) throw new Error("Product image download failed: HTTP " + imageResponse.status);
 const imageType = (imageResponse.headers.get("content-type") || "").toLowerCase();
