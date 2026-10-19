@@ -651,7 +651,7 @@ def run():
             updates.append({"id": target["id"], "cells": cells})
     
         result = put_rows(FINANCE_SHEET, updates)
-        _write_scan_report(scan_id, len(discovered), len(open_market), open_market_scan_complete, "SUCCESS")
+        _write_scan_report(scan_id, len(discovered), len(open_market), open_market_scan_complete, "SUCCESS", source_audit=last_discovery_report())
         print(f"Property agent engine processed {len(updates)} finance records.")
         if result:
             print(f"Smartsheet update resultCode={result.get('resultCode')} message={result.get('message')}")
@@ -664,6 +664,7 @@ def run():
             False,
             "FAILED",
             error=f"{type(exc).__name__}: {exc}",
+            source_audit=last_discovery_report(),
         )
         raise
 
