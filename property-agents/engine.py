@@ -556,6 +556,7 @@ def run():
                     "Previous Source URL", "Planning Review Status", "Planning Opportunity Summary",
                     "Planning Precedent Count", "Planning Same-Road Count", "Planning Potentially Approved Count", "Planning Search URL",
                     "Profit Estimate Status", "Estimated Net Profit Before Tax", "Estimated Completed Value", "Estimated Total Project Cost", "Geography Review Status",
+                    "Comparable Sales Evidence", "Comparable Sales Count", "Comparable Evidence Status",
                 }
                 cells = [{"columnId": pc[name], "value": value} for name, value in candidate.items()
                          if name in pc and name in discovery_fields and value is not None]
