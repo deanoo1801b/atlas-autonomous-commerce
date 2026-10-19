@@ -18,7 +18,7 @@ ATTRIBUTION = (
     "Licensed under the Open Government Licence v3.0."
 )
 POSTCODE_RE = re.compile(
-    r"\b([A-Z]{1,2}\d[A-Z\d]?)[ ]*\d[ABD-HJLNP-UW-Z]{2}\b",
+    r"^\\s*([A-PR-UWYZ]{1,2}\\d[A-Z\\d]?)(?:\\s*\\d[ABD-HJLNP-UW-Z]{2})?\\s*$",
     re.IGNORECASE,
 )
 PROPERTY_TYPE_TERMS = {
