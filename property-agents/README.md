@@ -32,6 +32,24 @@ Automated listing access is disabled unless the relevant permissions have been r
 
 See [SOURCES.md](SOURCES.md) for the source list and access policy.
 
+## HM Land Registry Sold-Comparable Lookup
+
+`land_registry_comparables.py` queries HM Land Registry's Price Paid Data linked-data endpoint for recent sales in the candidate property's postcode outcode and filters the results by the requested property type. This is an evidence-gathering aid, not an automated valuation.
+
+Example from the `property-agents` directory:
+
+```python
+from land_registry_comparables import fetch_sold_comparables
+
+result = fetch_sold_comparables("CR0 1AA", "terraced", days=365, limit=100)
+print(result["comparables"])
+print(result["attribution"])
+```
+
+The module is not wired into scheduled discovery and does not run during CI; call it explicitly when a reviewer has a candidate postcode and property type. It makes one bounded request to the official linked-data endpoint. A record is not automatically a qualifying comparable: check exact location, size, tenure, condition, and sale circumstances. Do not infer current ownership or seller motivation from sold-price records.
+
+When presenting or publishing Price Paid Data, retain this attribution: "Contains HM Land Registry data © Crown copyright and database right 2021. Licensed under the Open Government Licence v3.0." Review the current dataset terms, including restrictions affecting address data, before redistributing derived data.
+
 ## Planning & Development Opportunity Detector
 
 The planning adapter queries the Planning Data API for England using the candidate postcode. It looks for planning records that mention bedroom creation, loft/dormer work, extensions, conversions, subdivisions, annexes and additional dwellings. Same-road and nearby-postcode signals are distinguished where the returned record supports that comparison. Evidence is saved to the candidate Notes and visible summary fields when the existing sheet has those optional columns.
