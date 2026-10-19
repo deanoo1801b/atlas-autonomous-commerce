@@ -42,7 +42,7 @@ jobs:
       - name: Install free video and speech tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg librsvg2-bin espeak-ng python3-pip
+          sudo apt-get install -y ffmpeg librsvg2-bin python3-pip
           python -m pip install --user --break-system-packages kokoro-onnx soundfile
       - name: Render visual draft
         env:
@@ -55,11 +55,11 @@ jobs:
         env:
           VIDEO_TOPIC: ${{ inputs.topic || 'Long Handle Floor Scrub Brush with Squeegee' }}
         run: python scripts/generate-kokoro-voiceover.py
-      - name: Add narration to video
+      - name: Add narration to video without cutting the visuals short
         run: |
           ffmpeg -y -i video-output/atlas-video-draft.mp4 -i video-output/voiceover.wav \
             -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 160k \
-            -af "apad" -shortest -movflags +faststart video-output/atlas-video-draft-vo.mp4
+            -af "apad" -t 18 -movflags +faststart video-output/atlas-video-draft-vo.mp4
           mv video-output/atlas-video-draft-vo.mp4 video-output/atlas-video-draft.mp4
       - name: Upload draft MP4 and caption
         uses: actions/upload-artifact@v4
