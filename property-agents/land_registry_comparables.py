@@ -142,6 +142,81 @@ def normalize_results(payload: dict[str, Any], outcode: str, property_type: str,
     return output[:limit]
 
 
+def enrich_candidates_with_sold_comparables(candidates: list[dict[str, Any]], *,
+                                            enabled: bool | None = None,
+                                            max_lookups: int = 10,
+                                            fetcher: Any = fetch_sold_comparables) -> dict[str, Any]:
+    """Optionally enrich candidate records with official sold evidence, never a valuation.
+
+    Disabled by default. Caches each outcode/property-type lookup during this run.
+    """
+    import json
+    import os
+
+    if enabled is None:
+        enabled = os.getenv("ATLAS_HMLR_COMPARABLES_ENABLED", "").strip().lower() in {
+            "1", "true", "yes", "on"
+        }
+    if not enabled:
+        return {"enabled": False, "lookups": 0, "enriched": 0, "errors": 0}
+    if not 1 <= int(max_lookups) <= 25:
+        raise ValueError("max_lookups must be between 1 and 25")
+
+    cache: dict[tuple[str, str], dict[str, Any]] = {}
+    enriched = errors = 0
+    for candidate in candidates:
+        postcode = str(candidate.get("Postcode") or candidate.get("postcode") or "").strip()
+        property_type = str(candidate.get("Property Type") or candidate.get("property_type") or "").strip()
+        notes = candidate.get("Notes")
+        if not property_type and isinstance(notes, str):
+            try:
+                parsed_notes = json.loads(notes)
+                if isinstance(parsed_notes, dict):
+                    property_type = str(parsed_notes.get("property_type") or "").strip()
+            except (TypeError, json.JSONDecodeError):
+                pass
+        outcode = postcode_outcode(postcode)
+        if not outcode or not property_type:
+            candidate.setdefault("Comparable Evidence Status", "Not run: postcode or property type missing")
+            continue
+        key = (outcode, _local_type(property_type))
+        if key not in cache:
+            if len(cache) >= int(max_lookups):
+                candidate.setdefault("Comparable Evidence Status", "Deferred: per-run lookup limit reached")
+                continue
+            try:
+                cache[key] = fetcher(postcode, property_type, days=365, limit=100)
+            except Exception as exc:
+                errors += 1
+                candidate["Comparable Evidence Status"] = (
+                    f"Lookup failed ({type(exc).__name__}); no valuation inferred"
+                )
+                continue
+        result = cache[key]
+        records = result.get("comparables", [])
+        candidate["Comparable Sales Evidence"] = json.dumps(records, separators=(",", ":"))
+        candidate["Comparable Sales Count"] = len(records)
+        candidate["Comparable Evidence Status"] = (
+            "Candidate evidence available; human comparability review required"
+            if len(records) >= 3 else
+            "Insufficient recent same-type sales; do not classify as BMV"
+        )
+        if isinstance(notes, str):
+            try:
+                notes_obj = json.loads(notes)
+                if not isinstance(notes_obj, dict):
+                    notes_obj = {}
+            except (TypeError, json.JSONDecodeError):
+                notes_obj = {}
+        else:
+            notes_obj = {}
+        notes_obj["hm_land_registry_comparable_attribution"] = result.get("attribution", ATTRIBUTION)
+        notes_obj["hm_land_registry_comparable_limitations"] = result.get("limitations", [])
+        candidate["Notes"] = json.dumps(notes_obj, separators=(",", ":"))[:4000]
+        enriched += 1
+    return {"enabled": True, "lookups": len(cache), "enriched": enriched, "errors": errors}
+
+
 def fetch_sold_comparables(postcode: str, property_type: str, *,
                            days: int = 365, limit: int = 100,
                            session: Any = requests) -> dict[str, Any]:
