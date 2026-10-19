@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 const topic = (process.env.VIDEO_TOPIC || "Atlas Goods Store: everyday essentials").trim().slice(0, 180);
 const price = (process.env.VIDEO_PRODUCT_PRICE || "£14.99").trim().slice(0, 32);
 const productUrl = (process.env.VIDEO_PRODUCT_URL || "https://atlasgoodsstore.co.uk/products/long-handle-floor-scrub-brush-with-squeegee").trim();
-const imageUrl = (process.env.VIDEO_PRODUCT_IMAGE_URL || "").trim();
+const imageUrl = (process.env.VIDEO_PRODUCT_IMAGE_URL || "https://cdn.shopify.com/s/files/1/0833/5284/6562/files/long-handle-floor-scrub-brush.png?v=1789778185").trim();
 const brand = "ATLAS GOODS STORE";
 const outDir = "video-output";
 fs.mkdirSync(outDir, { recursive: true });
