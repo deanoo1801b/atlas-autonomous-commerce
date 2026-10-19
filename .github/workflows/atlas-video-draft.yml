@@ -12,6 +12,16 @@ on:
         required: true
         default: "Long Handle Floor Scrub Brush with Squeegee"
         type: string
+      product_price:
+        description: "Product price in GBP; check current Shopify price"
+        required: true
+        default: "£14.99"
+        type: string
+      product_image_url:
+        description: "Public Shopify CDN product image URL"
+        required: true
+        default: "https://cdn.shopify.com/s/files/1/0833/5284/6562/files/long-handle-floor-scrub-brush.png?v=1789778185"
+        type: string
       product_url:
         description: "Public Atlas product page URL"
         required: true
