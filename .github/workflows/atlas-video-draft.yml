@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/atlas-video-draft.yml"
       - "scripts/render-video-draft.mjs"
+      - "scripts/generate-kokoro-voiceover.py"
   workflow_dispatch:
     inputs:
       topic:
@@ -34,21 +35,32 @@ permissions:
 jobs:
   render-draft:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
       - name: Install free video and speech tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg espeak librsvg2-bin
-      - name: Render draft video
+          sudo apt-get install -y ffmpeg librsvg2-bin espeak-ng python3-pip
+          python -m pip install --user --break-system-packages kokoro-onnx soundfile
+      - name: Render visual draft
         env:
           VIDEO_TOPIC: ${{ inputs.topic || 'Long Handle Floor Scrub Brush with Squeegee' }}
           VIDEO_PRODUCT_PRICE: ${{ inputs.product_price || '£14.99' }}
           VIDEO_PRODUCT_URL: ${{ inputs.product_url || 'https://atlasgoodsstore.co.uk/products/long-handle-floor-scrub-brush-with-squeegee' }}
           VIDEO_PRODUCT_IMAGE_URL: ${{ inputs.product_image_url || 'https://cdn.shopify.com/s/files/1/0833/5284/6562/files/long-handle-floor-scrub-brush.png?v=1789778185' }}
         run: node scripts/render-video-draft.mjs
+      - name: Generate open-source British English voice-over
+        env:
+          VIDEO_TOPIC: ${{ inputs.topic || 'Long Handle Floor Scrub Brush with Squeegee' }}
+        run: python scripts/generate-kokoro-voiceover.py
+      - name: Add narration to video
+        run: |
+          ffmpeg -y -i video-output/atlas-video-draft.mp4 -i video-output/voiceover.wav \
+            -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 160k \
+            -af "apad" -shortest -movflags +faststart video-output/atlas-video-draft-vo.mp4
+          mv video-output/atlas-video-draft-vo.mp4 video-output/atlas-video-draft.mp4
       - name: Upload draft MP4 and caption
         uses: actions/upload-artifact@v4
         with:
