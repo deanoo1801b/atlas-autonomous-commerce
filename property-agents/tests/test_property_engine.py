@@ -37,6 +37,19 @@ class PrivateSellerSourcePolicyTests(unittest.TestCase):
             self.assertTrue(private_seller_agent._source_is_approved({"name": "Keyzee"}))
             self.assertFalse(private_seller_agent._source_is_approved({"name": "Hauski"}))
 
+    def test_source_audit_explains_disabled_sources_without_fetching(self):
+        with patch.dict(os.environ, {}, clear=True), \
+             patch.object(private_seller_agent, "SOURCES", [
+                 {"name": "Keyzee", "index": "https://keyzee.co.uk/"}
+             ]), \
+             patch.object(private_seller_agent, "_fetch") as fetch:
+            self.assertEqual(private_seller_agent.discover_private_sellers(), [])
+            audit = private_seller_agent.last_discovery_report()
+        fetch.assert_not_called()
+        self.assertEqual(audit["approved_source_count"], 0)
+        self.assertEqual(audit["candidate_count"], 0)
+        self.assertEqual(audit["sources"][0]["status"], "disabled_not_allowlisted")
+
 
 class OpenPropertiesAccessPolicyTests(unittest.TestCase):
     def test_rightmove_automation_is_disabled_without_written_permission(self):
