@@ -2,15 +2,20 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 
-const topic = (process.env.VIDEO_TOPIC || "Atlas Goods Store: everyday essentials").trim().slice(0, 180);
-const price = (process.env.VIDEO_PRODUCT_PRICE || "£14.99").trim().slice(0, 32);
-const productUrl = (process.env.VIDEO_PRODUCT_URL || "https://atlasgoodsstore.co.uk/products/long-handle-floor-scrub-brush-with-squeegee").trim();
-const imageUrl = (process.env.VIDEO_PRODUCT_IMAGE_URL || "https://cdn.shopify.com/s/files/1/0833/5284/6562/files/long-handle-floor-scrub-brush.png?v=1789778185").trim();
+const requestedTopic = (process.env.VIDEO_TOPIC || "").trim().slice(0, 180);
+const productUrl = (process.env.VIDEO_PRODUCT_URL || "https://atlasgoodsstore.co.uk/products/long-handle-floor-scrub-brush-with-squeegee").trim().replace(/\/$/, "");
 const brand = "ATLAS GOODS STORE";
 const outDir = "video-output";
 fs.mkdirSync(outDir, { recursive: true });
-if (!/^https:\/\/atlasgoodsstore\.co\.uk\/products\/[a-z0-9-]+\/?$/i.test(productUrl)) throw new Error("Product URL must be an Atlas Goods Store product page.");
-if (!/^https:\/\/cdn\.shopify\.com\//i.test(imageUrl)) throw new Error("Product image must be a public HTTPS Shopify CDN URL.");
+if (!/^https:\/\/atlasgoodsstore\.co\.uk\/products\/[a-z0-9-]+$/i.test(productUrl)) throw new Error("Product URL must be an Atlas Goods Store product page.");
+const productResponse = await fetch(productUrl + ".js", { signal: AbortSignal.timeout(15000) });
+if (!productResponse.ok) throw new Error("Could not read live Shopify product data: HTTP " + productResponse.status);
+const product = await productResponse.json();
+if (!product || typeof product.title !== "string" || !Array.isArray(product.images) || !product.images[0] || typeof product.price !== "number") throw new Error("Live Shopify product data is missing a title, price or image.");
+const topic = product.title.slice(0, 180);
+const price = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(product.price / 100);
+const imageUrl = String(product.images[0]);
+if (!/^https:\/\/cdn\.shopify\.com\//i.test(imageUrl)) throw new Error("Live product image is not hosted on the Shopify CDN.");
 const imageResponse = await fetch(imageUrl, { signal: AbortSignal.timeout(15000) });
 if (!imageResponse.ok) throw new Error("Product image download failed: HTTP " + imageResponse.status);
 const imageType = (imageResponse.headers.get("content-type") || "").toLowerCase();
@@ -35,7 +40,7 @@ function wrap(text, max = 24) {
   return lines.slice(0, 4);
 }
 const scenes = [
-  { heading: "A PRACTICAL EVERYDAY PICK", sub: topic },
+  { heading: "A PRACTICAL EVERYDAY PICK", sub: requestedTopic || topic },
   { heading: "DESIGNED FOR THE TASK", sub: "A handy option for your cleaning routine." },
   { heading: "CLEAR PRICE. SIMPLE SHOPPING.", sub: price },
   { heading: "SHOP ATLAS GOODS STORE", sub: "Free UK shipping." },
