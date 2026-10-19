@@ -7,6 +7,7 @@ from open_properties_agent import discover_open_properties, to_property_lead, la
 from motivated_seller_agent import motivation_score, motivation_trend
 from planning_opportunity_agent import analyse_planning_candidate, development_profit_scenario
 from property_route_review import write_review_queue
+from land_registry_comparables import enrich_candidates_with_sold_comparables
 
 BASE = "https://api.smartsheet.com/2.0"
 TOKEN = os.getenv("SMARTSHEET_API_TOKEN", "").strip()
@@ -429,6 +430,24 @@ def run():
                 candidate["Planning Review Status"] = "Planning API error - council portal review required"
                 candidate["Planning Opportunity Summary"] = f"Planning scan failed ({type(planning_exc).__name__}); this is not evidence that no applications exist."
                 planning_processed += 1
+        # Official sold-price enrichment is opt-in, bounded, and read-only.
+        # It never sets current market value or BMV status automatically.
+        try:
+            comparable_limit = int(os.getenv("ATLAS_HMLR_COMPARABLES_MAX_LOOKUPS", "10"))
+            comparable_summary = enrich_candidates_with_sold_comparables(
+                discovered,
+                max_lookups=comparable_limit,
+            )
+            if comparable_summary.get("enabled"):
+                print(
+                    "HM Land Registry comparable lookup: "
+                    f"{comparable_summary.get('lookups', 0)} lookups, "
+                    f"{comparable_summary.get('enriched', 0)} candidates enriched, "
+                    f"{comparable_summary.get('errors', 0)} errors; human review required."
+                )
+        except Exception as comparable_exc:
+            print(f"HM Land Registry comparable enrichment skipped ({type(comparable_exc).__name__}); no valuation inferred.")
+
         # Local audit artifact only; no route data is written to Smartsheet.
         route_review = write_review_queue(discovered, scan_id)
         print(f"Contract route review queue created for {route_review['candidate_count']} candidates; no commitments or outreach performed.")
