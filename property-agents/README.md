@@ -111,3 +111,20 @@ The review queue is an audit artifact only. It does not write to Smartsheet, con
 The workflow also uploads a self-contained HTML review page alongside the JSON queue. It escapes property/source text before rendering and clearly labels all results as review-only, never transaction approval.
 
 The review queue now adds an evidence-work priority score and reasons. This is solely a triage order for completing due diligence; it does not rank a deal as a good investment, recommend an offer, or bypass any legal or human-review gate.
+
+## Local lead review exports
+
+The controlled dry-run pipeline writes six spreadsheet-compatible CSV files in its working directory:
+
+- `private_seller_review.csv` — potential direct/private-owner opportunities; verify source and owner evidence manually.
+- `open_market_review.csv` — open-market candidates; source permission controls still apply.
+- `development_review.csv` — development and land opportunities.
+- `finance_review.csv` — finance-related enquiries or opportunities; this is not approval to contact, advise, or refer anyone.
+- `bmv_review.csv` — preliminary arithmetic flags only when asking price is at least 25% below a supplied estimated market value and at least three comparable-sale records are supplied.
+- `property_acquisition_review.csv` — candidates not classified into the other queues.
+
+The BMV queue does not independently verify market value, comparability, ownership, title, planning, refurbishment costs, or seller motivation. Three records alone do not prove that sales are comparable. Human review must confirm addresses, property type, size, condition, sale dates, tenure where available, and transaction evidence before a lead can be ranked or treated as a genuine below-market opportunity.
+
+The GitHub Actions property-engine workflow uploads any generated CSV queues as a downloadable artifact named `inspiration-properties-local-review-queues`. The run remains in dry-run mode; an empty queue means no candidate was found by that run, not that no opportunities exist.
+
+No queue export authorizes seller contact, an offer, a finance referral, publication, or production-system writes. Enable a source only after the relevant current terms, licence and written permissions (where required) have been reviewed. See [SOURCES.md](SOURCES.md) and [COMPLIANCE.md](COMPLIANCE.md).
