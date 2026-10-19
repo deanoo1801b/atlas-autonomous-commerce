@@ -1,6 +1,10 @@
 name: ATLAS Video Draft (Free Prototype)
 
 on:
+  push:
+    paths:
+      - ".github/workflows/atlas-video-draft.yml"
+      - "scripts/render-video-draft.mjs"
   workflow_dispatch:
     inputs:
       topic:
