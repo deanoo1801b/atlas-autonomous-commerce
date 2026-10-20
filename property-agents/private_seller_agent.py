@@ -19,7 +19,7 @@ from urllib.robotparser import RobotFileParser
 SOURCES = [
     {"name": "Keyzee", "base": "https://keyzee.co.uk/", "index": "https://keyzee.co.uk/", "owner_only": True},
     {"name": "FYSH", "base": "https://www.fysh.uk/", "index": "https://www.fysh.uk/", "owner_only": True},
-    {"name": "OffAgent", "base": "https://www.offagent.co.uk/", "index": "https://www.offagent.co.uk/properties", "owner_only": True},
+    {"name": "OffAgent", "base": "https://www.offagent.co.uk/", "index": "https://www.offagent.co.uk/properties", "owner_only": True, "business_use_allowed": False, "policy_note": "Platform terms restrict use to individual professionals acting personally; company/agency use is prohibited."},
     {"name": "Hauski", "base": "https://www.hauski.com/", "index": "https://www.hauski.com/", "owner_only": True},
     {"name": "OwnerBridge", "base": "https://www.ownerbridge.co.uk/", "index": "https://www.ownerbridge.co.uk/", "owner_only": True},
     {"name": "FMDirect", "base": "https://fairmovedirect.co.uk/", "index": "https://fairmovedirect.co.uk/", "owner_only": True},
@@ -149,7 +149,12 @@ def _source_is_approved(source: dict) -> bool:
         for name in os.getenv("ATLAS_APPROVED_PRIVATE_SELLER_SOURCES", "").split(",")
         if name.strip()
     }
-    return str(source.get("name") or "").strip().casefold() in approved
+    # Some sources expressly prohibit company/agency use. An allowlist must
+    # never override an explicit source-specific business-use restriction.
+    return (
+        str(source.get("name") or "").strip().casefold() in approved
+        and source.get("business_use_allowed") is not False
+    )
 
 
 def discover_private_sellers():
@@ -165,7 +170,13 @@ def discover_private_sellers():
         }
         # robots.txt is not a licence. Explicit operator approval is still required.
         if not _source_is_approved(source):
-            source_report["status"] = "disabled_not_allowlisted"
+            source_report["status"] = (
+                "disabled_source_policy"
+                if source.get("business_use_allowed") is False
+                else "disabled_not_allowlisted"
+            )
+            if source.get("policy_note"):
+                source_report["policy_note"] = source["policy_note"]
             report["sources"].append(source_report)
             continue
         report["approved_source_count"] += 1
