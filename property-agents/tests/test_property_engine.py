@@ -37,6 +37,33 @@ class PrivateSellerSourcePolicyTests(unittest.TestCase):
             self.assertTrue(private_seller_agent._source_is_approved({"name": "Keyzee"}))
             self.assertFalse(private_seller_agent._source_is_approved({"name": "Hauski"}))
 
+    def test_explicit_source_policy_block_cannot_be_overridden_by_allowlist(self):
+        source = {
+            "name": "OffAgent",
+            "business_use_allowed": False,
+            "policy_note": "Company/agency use is prohibited by source terms.",
+        }
+        with patch.dict(os.environ, {
+            "ATLAS_APPROVED_PRIVATE_SELLER_SOURCES": "OffAgent"
+        }, clear=True):
+            self.assertFalse(private_seller_agent._source_is_approved(source))
+
+    def test_source_audit_marks_policy_block_even_when_source_is_allowlisted(self):
+        source = {
+            "name": "OffAgent",
+            "index": "https://www.offagent.co.uk/properties",
+            "business_use_allowed": False,
+            "policy_note": "Company/agency use is prohibited by source terms.",
+        }
+        with patch.dict(os.environ, {
+            "ATLAS_APPROVED_PRIVATE_SELLER_SOURCES": "OffAgent"
+        }, clear=True), patch.object(private_seller_agent, "SOURCES", [source]), \
+             patch.object(private_seller_agent, "_fetch") as fetch:
+            self.assertEqual(private_seller_agent.discover_private_sellers(), [])
+            audit = private_seller_agent.last_discovery_report()
+        fetch.assert_not_called()
+        self.assertEqual(audit["sources"][0]["status"], "disabled_source_policy")
+
     def test_source_audit_explains_disabled_sources_without_fetching(self):
         with patch.dict(os.environ, {}, clear=True), \
              patch.object(private_seller_agent, "SOURCES", [
