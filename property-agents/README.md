@@ -22,6 +22,34 @@ The engine reads both Smartsheet IDs from GitHub Actions secrets at runtime; IDs
 - FINANCE_OPPORTUNITIES_SHEET_ID: current live Finance Opportunities sheet ID is 890673877438340
 
 
+## Automated Discovery Permission Gates
+
+Automated listing access is disabled unless the relevant permissions have been reviewed:
+- Private seller sources: set `ATLAS_APPROVED_PRIVATE_SELLER_SOURCES` to a comma-separated list of exact source names only after checking current terms, licence and commercial-use rights, and obtaining written permission where required. An empty or missing value disables all private-seller source requests.
+- Rightmove open-market adapter: both `ATLAS_OPEN_PROPERTIES_ENABLED=true` and `ATLAS_RIGHTMOVE_WRITTEN_PERMISSION=true` are required. Rightmove's published terms prohibit automated collection without prior written permission. Do not set the permission flag unless valid permission has actually been obtained.
+- robots.txt is checked as an additional safeguard; it is not a licence to scrape.
+- CI tests use mocked responses and do not run live discovery. The dry-run pipeline may create local review artifacts but must not contact sellers, make offers, refer finance cases, publish, or write to production business systems.
+
+See [SOURCES.md](SOURCES.md) for the source list and access policy.
+
+## HM Land Registry Sold-Comparable Lookup
+
+`land_registry_comparables.py` queries HM Land Registry's Price Paid Data linked-data endpoint for recent sales in the candidate property's postcode outcode and filters the results by the requested property type. This is an evidence-gathering aid, not an automated valuation.
+
+Example from the `property-agents` directory:
+
+```python
+from land_registry_comparables import fetch_sold_comparables
+
+result = fetch_sold_comparables("CR0 1AA", "terraced", days=365, limit=100)
+print(result["comparables"])
+print(result["attribution"])
+```
+
+The engine can enrich the local review queue with this evidence when explicitly enabled by setting `ATLAS_HMLR_COMPARABLES_ENABLED=true`. It is disabled by default. `ATLAS_HMLR_COMPARABLES_MAX_LOOKUPS` sets the per-run cap (1–25; default 10); lookups are cached by postcode outcode and property type within a run. CI uses mocked responses and does not call the live endpoint. A record is not automatically a qualifying comparable: check exact location, size, tenure, condition, and sale circumstances. Do not infer current ownership or seller motivation from sold-price records.
+
+When presenting or publishing Price Paid Data, retain this attribution: "Contains HM Land Registry data © Crown copyright and database right 2021. Licensed under the Open Government Licence v3.0." Review the current dataset terms, including restrictions affecting address data, before redistributing derived data.
+
 ## Planning & Development Opportunity Detector
 
 The planning adapter queries the Planning Data API for England using the candidate postcode. It looks for planning records that mention bedroom creation, loft/dormer work, extensions, conversions, subdivisions, annexes and additional dwellings. Same-road and nearby-postcode signals are distinguished where the returned record supports that comparison. Evidence is saved to the candidate Notes and visible summary fields when the existing sheet has those optional columns.
@@ -83,3 +111,31 @@ The review queue is an audit artifact only. It does not write to Smartsheet, con
 The workflow also uploads a self-contained HTML review page alongside the JSON queue. It escapes property/source text before rendering and clearly labels all results as review-only, never transaction approval.
 
 The review queue now adds an evidence-work priority score and reasons. This is solely a triage order for completing due diligence; it does not rank a deal as a good investment, recommend an offer, or bypass any legal or human-review gate.
+
+## Local lead review exports
+
+The controlled dry-run pipeline writes six spreadsheet-compatible CSV files in its working directory:
+
+- `private_seller_review.csv` — potential direct/private-owner opportunities; verify source and owner evidence manually.
+- `open_market_review.csv` — open-market candidates; source permission controls still apply.
+- `development_review.csv` — development and land opportunities.
+- `finance_review.csv` — finance-related enquiries or opportunities; this is not approval to contact, advise, or refer anyone.
+- `bmv_review.csv` — preliminary arithmetic flags only when asking price is at least 25% below a supplied estimated market value and at least three comparable-sale records are supplied.
+- `property_acquisition_review.csv` — candidates not classified into the other queues.
+
+The BMV queue does not independently verify market value, comparability, ownership, title, planning, refurbishment costs, or seller motivation. Three records alone do not prove that sales are comparable. Human review must confirm addresses, property type, size, condition, sale dates, tenure where available, and transaction evidence before a lead can be ranked or treated as a genuine below-market opportunity.
+
+The GitHub Actions property-engine workflow uploads any generated CSV queues as a downloadable artifact named `inspiration-properties-local-review-queues`. The run remains in dry-run mode; an empty queue means no candidate was found by that run, not that no opportunities exist.
+
+No queue export authorizes seller contact, an offer, a finance referral, publication, or production-system writes. Enable a source only after the relevant current terms, licence and written permissions (where required) have been reviewed. See [SOURCES.md](SOURCES.md) and [COMPLIANCE.md](COMPLIANCE.md).
+
+
+## Read-only Official Source Health Check
+
+Run the manually triggered GitHub Actions workflow **Inspiration Properties Source Health Check** to check two official data routes without touching listing portals or business systems. It performs a bounded HM Land Registry Price Paid Data query and checks whether the national Planning Data API's `planning-application` dataset returns a sample record. The JSON report is uploaded as an artifact.
+
+Important:
+- This is a source/API health check, not property discovery and not proof of live deals.
+- As checked on 21 October 2026, the official national planning-application dataset page reports zero records and no data providers. Treat an empty response as a coverage warning and check the relevant council planning register; do not interpret it as a negative search result. See [the official dataset status page](https://www.planning.data.gov.uk/dataset/planning-application).
+- HM Land Registry sample records are sold transactions, not current listings, valuations, seller intent, or proof of a BMV deal. Preserve required attribution and review third-party address-data restrictions before redistribution.
+- This workflow uses only official public endpoints. It does not scrape Rightmove or private-seller sites, contact anyone, create property candidates, refer finance cases, or write to production systems.

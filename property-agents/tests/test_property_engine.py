@@ -3,13 +3,97 @@ import os
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 
 os.environ["ATLAS_PROPERTY_AGENT_DRY_RUN"] = "true"
 
+import engine
+
 from engine import _identity_key, _canonical_url, _listing_fields, _stale_band, finance_ready, compliance, _write_scan_report, removal_updates, classify_relisting, _property_relisting_key, geography_status, apply_geography_gate
+import open_properties_agent
+import private_seller_agent
 from open_properties_agent import to_property_lead
 from motivated_seller_agent import motivation_score, motivation_trend
 from planning_opportunity_agent import analyse_planning_candidate, development_profit_scenario
+from private_seller_agent import _is_sample_listing, _extract_uk_postcode
+
+
+class PrivateSellerSourcePolicyTests(unittest.TestCase):
+    def test_private_seller_sources_are_disabled_without_explicit_approval(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(private_seller_agent._source_is_approved({"name": "Keyzee"}))
+
+    def test_discovery_does_not_fetch_unapproved_sources(self):
+        with patch.dict(os.environ, {}, clear=True), \
+             patch.object(private_seller_agent, "SOURCES", [{"name": "Keyzee", "index": "https://keyzee.co.uk/"}]), \
+             patch.object(private_seller_agent, "_fetch") as fetch:
+            self.assertEqual(private_seller_agent.discover_private_sellers(), [])
+        fetch.assert_not_called()
+
+    def test_private_seller_source_requires_exact_allowlist_entry(self):
+        with patch.dict(os.environ, {
+            "ATLAS_APPROVED_PRIVATE_SELLER_SOURCES": "Keyzee, OffAgent"
+        }, clear=True):
+            self.assertTrue(private_seller_agent._source_is_approved({"name": "Keyzee"}))
+            self.assertFalse(private_seller_agent._source_is_approved({"name": "Hauski"}))
+
+    def test_explicit_source_policy_block_cannot_be_overridden_by_allowlist(self):
+        source = {
+            "name": "OffAgent",
+            "business_use_allowed": False,
+            "policy_note": "Company/agency use is prohibited by source terms.",
+        }
+        with patch.dict(os.environ, {
+            "ATLAS_APPROVED_PRIVATE_SELLER_SOURCES": "OffAgent"
+        }, clear=True):
+            self.assertFalse(private_seller_agent._source_is_approved(source))
+
+    def test_source_audit_marks_policy_block_even_when_source_is_allowlisted(self):
+        source = {
+            "name": "OffAgent",
+            "index": "https://www.offagent.co.uk/properties",
+            "business_use_allowed": False,
+            "policy_note": "Company/agency use is prohibited by source terms.",
+        }
+        with patch.dict(os.environ, {
+            "ATLAS_APPROVED_PRIVATE_SELLER_SOURCES": "OffAgent"
+        }, clear=True), patch.object(private_seller_agent, "SOURCES", [source]), \
+             patch.object(private_seller_agent, "_fetch") as fetch:
+            self.assertEqual(private_seller_agent.discover_private_sellers(), [])
+            audit = private_seller_agent.last_discovery_report()
+        fetch.assert_not_called()
+        self.assertEqual(audit["sources"][0]["status"], "disabled_source_policy")
+
+    def test_source_audit_explains_disabled_sources_without_fetching(self):
+        with patch.dict(os.environ, {}, clear=True), \
+             patch.object(private_seller_agent, "SOURCES", [
+                 {"name": "Keyzee", "index": "https://keyzee.co.uk/"}
+             ]), \
+             patch.object(private_seller_agent, "_fetch") as fetch:
+            self.assertEqual(private_seller_agent.discover_private_sellers(), [])
+            audit = private_seller_agent.last_discovery_report()
+        fetch.assert_not_called()
+        self.assertEqual(audit["approved_source_count"], 0)
+        self.assertEqual(audit["candidate_count"], 0)
+        self.assertEqual(audit["sources"][0]["status"], "disabled_not_allowlisted")
+
+
+class OpenPropertiesAccessPolicyTests(unittest.TestCase):
+    def test_rightmove_automation_is_disabled_without_written_permission(self):
+        with patch.dict(os.environ, {"ATLAS_OPEN_PROPERTIES_ENABLED": "true"}, clear=True):
+            self.assertFalse(open_properties_agent._enabled())
+
+    def test_rightmove_automation_requires_both_enablement_and_written_permission(self):
+        with patch.dict(os.environ, {
+            "ATLAS_OPEN_PROPERTIES_ENABLED": "true",
+            "ATLAS_RIGHTMOVE_WRITTEN_PERMISSION": "true",
+        }, clear=True):
+            self.assertTrue(open_properties_agent._enabled())
+        with patch.dict(os.environ, {
+            "ATLAS_OPEN_PROPERTIES_ENABLED": "false",
+            "ATLAS_RIGHTMOVE_WRITTEN_PERMISSION": "true",
+        }, clear=True):
+            self.assertFalse(open_properties_agent._enabled())
 
 
 class GeographyTests(unittest.TestCase):
@@ -235,13 +319,13 @@ class RemovalGateTests(unittest.TestCase):
         )
 
 class ScanAuditTests(unittest.TestCase):
-    def _read_report(self, status, error=None):
+    def _read_report(self, status, error=None, source_audit=None):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "scan.json")
             old = os.environ.get("ATLAS_SCAN_REPORT_PATH")
             os.environ["ATLAS_SCAN_REPORT_PATH"] = path
             try:
-                _write_scan_report("SCAN-TEST", 12, 9, True, status, error=error)
+                _write_scan_report("SCAN-TEST", 12, 9, True, status, error=error, source_audit=source_audit)
                 with open(path, encoding="utf-8") as fh:
                     return json.load(fh)
             finally:
@@ -258,6 +342,15 @@ class ScanAuditTests(unittest.TestCase):
         self.assertTrue(report["open_market_scan_complete"])
         self.assertEqual(report["status"], "SUCCESS")
         self.assertIsNone(report["error"])
+
+    def test_scan_audit_preserves_private_seller_source_statuses(self):
+        source_audit = {
+            "approved_source_count": 0,
+            "candidate_count": 0,
+            "sources": [{"source": "Keyzee", "status": "disabled_not_allowlisted", "listing_pages_checked": 0, "verified_candidates": 0}],
+        }
+        report = self._read_report("DRY_RUN_DISCOVERY_COMPLETE", source_audit=source_audit)
+        self.assertEqual(report["private_seller_source_audit"], source_audit)
 
     def test_failed_audit_preserves_error(self):
         report = self._read_report("FAILED", "RuntimeError: test failure")
@@ -468,6 +561,54 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(result["Reduction Amount"], 35000)
         self.assertEqual(result["Stale Band"], "Stale")
         self.assertIn('"price":465000.0', result["Evidence History"])
+
+
+class PrivateSellerQualityTests(unittest.TestCase):
+    def test_sample_listing_is_rejected(self):
+        self.assertTrue(_is_sample_listing("Sample listing, not a real home"))
+
+    def test_demo_property_is_rejected(self):
+        self.assertTrue(_is_sample_listing("Demo property for testing", "https://example.test/homes/1"))
+
+    def test_real_listing_text_is_not_rejected_as_sample(self):
+        self.assertFalse(_is_sample_listing(
+            "Three bedroom home for sale by owner in London, guide price £350,000",
+            "https://example.test/properties/123",
+        ))
+
+    def test_extracts_and_normalizes_uk_postcode(self):
+        self.assertEqual(_extract_uk_postcode("A home in London SW1A 1AA, guide price £350,000"), "SW1A 1AA")
+
+    def test_postcode_extraction_requires_evidence(self):
+        self.assertIsNone(_extract_uk_postcode("A three bedroom home in London with a garden"))
+
+    def test_postcode_extraction_normalizes_whitespace(self):
+        self.assertEqual(_extract_uk_postcode("A home at SW1A\n1AA in London"), "SW1A 1AA")
+
+    def test_extracted_postcode_passes_the_geography_gate(self):
+        postcode = _extract_uk_postcode("Private owner listing in Croydon CR0 1AA")
+        self.assertEqual(geography_status({"Postcode": postcode}), "In designated area")
+
+
+class DryRunExecutionTests(unittest.TestCase):
+    def test_dry_run_performs_discovery_but_never_reads_or_writes_smartsheet(self):
+        with (
+            patch("engine.discover_private_sellers", return_value=[]) as private_discovery,
+            patch("engine.discover_open_properties", return_value=[]) as open_market_discovery,
+            patch("engine.last_scan_complete", return_value=False),
+            patch("engine.write_review_queue", return_value={"candidate_count": 0}),
+            patch("engine._write_scan_report") as report,
+            patch("engine.get_sheet") as get_sheet,
+            patch("engine.put_rows") as put_rows,
+        ):
+            engine.run()
+
+        private_discovery.assert_called_once_with()
+        open_market_discovery.assert_called_once_with()
+        get_sheet.assert_not_called()
+        put_rows.assert_not_called()
+        report.assert_called_once()
+        self.assertEqual(report.call_args.args[4], "DRY_RUN_DISCOVERY_COMPLETE")
 
 
 if __name__ == "__main__":

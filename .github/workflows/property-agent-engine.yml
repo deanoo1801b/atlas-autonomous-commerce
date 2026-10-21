@@ -109,3 +109,17 @@ jobs:
           name: property-agent-scan-audit
           path: property-agent-scan-report.json
           if-no-files-found: ignore
+
+      - name: Upload local property lead review queues
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: inspiration-properties-local-review-queues
+          path: |
+            private_seller_review.csv
+            open_market_review.csv
+            development_review.csv
+            finance_review.csv
+            bmv_review.csv
+            property_acquisition_review.csv
+          if-no-files-found: ignore

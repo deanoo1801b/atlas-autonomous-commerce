@@ -25,9 +25,18 @@ DEFAULT_LOCATIONS = (
 )
 
 def _enabled() -> bool:
-    return os.getenv("ATLAS_OPEN_PROPERTIES_ENABLED", "true").strip().lower() in {
+    """Fail closed unless automated Rightmove access has been explicitly authorized.
+
+    Rightmove's published terms prohibit automated access without prior written
+    permission. Setting the general provider toggle alone is not sufficient.
+    """
+    enabled = os.getenv("ATLAS_OPEN_PROPERTIES_ENABLED", "true").strip().lower() in {
         "1", "true", "yes", "on"
     }
+    written_permission = os.getenv("ATLAS_RIGHTMOVE_WRITTEN_PERMISSION", "").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+    return enabled and written_permission
 
 def _locations() -> list[str]:
     raw = os.getenv("ATLAS_PROPERTY_LOCATIONS", "").strip()

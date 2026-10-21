@@ -7,6 +7,7 @@ Sources are intentionally limited to platforms that advertise owner/private list
 from __future__ import annotations
 
 import hashlib
+import os
 import json
 import re
 import time
@@ -18,7 +19,7 @@ from urllib.robotparser import RobotFileParser
 SOURCES = [
     {"name": "Keyzee", "base": "https://keyzee.co.uk/", "index": "https://keyzee.co.uk/", "owner_only": True},
     {"name": "FYSH", "base": "https://www.fysh.uk/", "index": "https://www.fysh.uk/", "owner_only": True},
-    {"name": "OffAgent", "base": "https://www.offagent.co.uk/", "index": "https://www.offagent.co.uk/properties", "owner_only": True},
+    {"name": "OffAgent", "base": "https://www.offagent.co.uk/", "index": "https://www.offagent.co.uk/properties", "owner_only": True, "business_use_allowed": False, "policy_note": "Platform terms restrict use to individual professionals acting personally; company/agency use is prohibited."},
     {"name": "Hauski", "base": "https://www.hauski.com/", "index": "https://www.hauski.com/", "owner_only": True},
     {"name": "OwnerBridge", "base": "https://www.ownerbridge.co.uk/", "index": "https://www.ownerbridge.co.uk/", "owner_only": True},
     {"name": "FMDirect", "base": "https://fairmovedirect.co.uk/", "index": "https://fairmovedirect.co.uk/", "owner_only": True},
@@ -27,6 +28,13 @@ SOURCES = [
 ]
 
 UA = "InspirationPropertiesPublicListingAgent/1.0 (+public-listing-discovery)"
+
+_LAST_DISCOVERY_REPORT: dict = {"sources": [], "approved_source_count": 0, "candidate_count": 0}
+
+
+def last_discovery_report() -> dict:
+    """Return a copy of this run source-policy audit without listing content."""
+    return json.loads(json.dumps(_LAST_DISCOVERY_REPORT))
 
 class LinkParser(HTMLParser):
     def __init__(self):
@@ -108,30 +116,103 @@ def _candidate_links(source, html):
             break
     return result
 
+def _extract_uk_postcode(text: str) -> str | None:
+    """Return a normalized UK postcode only when it appears in the public listing text."""
+    pattern = r"\b(GIR\s*0AA|(?:[A-PR-UWYZ]\d{1,2}|[A-PR-UWYZ][A-HK-Y]\d{1,2}|[A-PR-UWYZ]\d[A-HJKSTUW]|[A-PR-UWYZ][A-HK-Y]\d[ABEHMNPRV-Y])\s*\d[ABD-HJLNP-UW-Z]{2})\b"
+    match = re.search(pattern, text or "", re.IGNORECASE)
+    if not match:
+        return None
+    value = re.sub(r"\s+", " ", match.group(1).upper()).strip()
+    if value == "GIR 0AA":
+        return value
+    compact = value.replace(" ", "")
+    return re.sub(r"^(.*?)(\d[A-Z]{2})$", r"\1 \2", compact)
+
+
+def _is_sample_listing(text: str, url: str = "", label: str = "") -> bool:
+    """Reject obvious demo/test/sample pages before treating them as real property leads."""
+    combined = re.sub(r"\s+", " ", f"{label} {url} {text}").lower()
+    patterns = (
+        r"\bsample listing\b",
+        r"\bnot a real (?:home|property|listing)\b",
+        r"\bdemo (?:listing|property|home)\b",
+        r"\btest (?:listing|property|home)\b",
+        r"\bexample (?:listing|property|home)\b",
+        r"\bplaceholder (?:listing|property|home)\b",
+    )
+    return any(re.search(pattern, combined) for pattern in patterns)
+
+def _source_is_approved(source: dict) -> bool:
+    """Require explicit operator approval after checking each site's terms/API rights."""
+    approved = {
+        name.strip().casefold()
+        for name in os.getenv("ATLAS_APPROVED_PRIVATE_SELLER_SOURCES", "").split(",")
+        if name.strip()
+    }
+    # Some sources expressly prohibit company/agency use. An allowlist must
+    # never override an explicit source-specific business-use restriction.
+    return (
+        str(source.get("name") or "").strip().casefold() in approved
+        and source.get("business_use_allowed") is not False
+    )
+
+
 def discover_private_sellers():
+    global _LAST_DISCOVERY_REPORT
     candidates = []
+    report = {"sources": [], "approved_source_count": 0, "candidate_count": 0}
     for source in SOURCES:
+        source_report = {
+            "source": str(source.get("name") or "Unknown"),
+            "status": "not_checked",
+            "listing_pages_checked": 0,
+            "verified_candidates": 0,
+        }
+        # robots.txt is not a licence. Explicit operator approval is still required.
+        if not _source_is_approved(source):
+            source_report["status"] = (
+                "disabled_source_policy"
+                if source.get("business_use_allowed") is False
+                else "disabled_not_allowlisted"
+            )
+            if source.get("policy_note"):
+                source_report["policy_note"] = source["policy_note"]
+            report["sources"].append(source_report)
+            continue
+        report["approved_source_count"] += 1
         index_html = _fetch(source["index"])
         if not index_html:
+            source_report["status"] = "index_unavailable_or_blocked"
+            report["sources"].append(source_report)
             continue
-        for label, url in _candidate_links(source, index_html):
+        links = _candidate_links(source, index_html)
+        source_report["listing_pages_checked"] = len(links)
+        if not links:
+            source_report["status"] = "index_scanned_no_candidate_links"
+            report["sources"].append(source_report)
+            continue
+        for label, url in links:
             html = _fetch(url)
             if not html:
                 continue
-            text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html)).strip()
+            text = re.sub(r"\\s+", " ", re.sub(r"<[^>]+>", " ", html)).strip()
             if len(text) < 40:
                 continue
             low = text.lower()
-            # Strong private-owner signal from the source itself.
+            if _is_sample_listing(text, url, label):
+                continue
             private_signal = any(k in low for k in (
                 "private seller", "owner listed", "owner-listed", "sell privately",
                 "directly by the owner", "private vendor", "homeowner",
                 "owner-to-buyer", "no estate agent", "without an estate agent",
-                "listed by the owner", "listed directly by owners"
+                "listed by the owner", "listed directly by owners",
+                "for sale by owner", "sold directly by owner", "owner is selling",
+                "selling my home", "selling our home"
             ))
-            if not source.get("owner_only") and not private_signal:
+            if not private_signal:
                 continue
             price = _price(text)
+            postcode = _extract_uk_postcode(text)
             digest = hashlib.sha256(url.encode()).hexdigest()[:16]
             candidates.append({
                 "Lead ID": f"PS-{digest}",
@@ -139,8 +220,9 @@ def discover_private_sellers():
                 "Opportunity Type": "Private Sale",
                 "Seller Type": "Direct Owner",
                 "Contact Route": "Platform only; human approval required",
-
                 "Area": None,
+                "Postcode": postcode,
+                "Location Evidence": f"UK postcode extracted from public listing text: {postcode}" if postcode else None,
                 "Asking Price": price,
                 "Seller Name": None,
                 "Source": source["name"],
@@ -150,7 +232,15 @@ def discover_private_sellers():
                 "Do Not Contact": False,
                 "Finance Candidate": "Review",
             })
+            source_report["verified_candidates"] += 1
             time.sleep(0.5)
+        source_report["status"] = (
+            "candidate_evidence_found" if source_report["verified_candidates"]
+            else "pages_checked_no_verified_owner_evidence"
+        )
+        report["sources"].append(source_report)
+    report["candidate_count"] = len(candidates)
+    _LAST_DISCOVERY_REPORT = report
     return candidates
 
 if __name__ == "__main__":

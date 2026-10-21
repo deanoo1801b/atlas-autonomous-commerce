@@ -2,11 +2,13 @@ import os, re, hashlib, time, json, math
 from datetime import datetime, timezone
 from urllib.parse import urlsplit, urlunsplit
 import requests
-from private_seller_agent import discover_private_sellers
+from private_seller_agent import discover_private_sellers, last_discovery_report
 from open_properties_agent import discover_open_properties, to_property_lead, last_scan_complete
 from motivated_seller_agent import motivation_score, motivation_trend
 from planning_opportunity_agent import analyse_planning_candidate, development_profit_scenario
 from property_route_review import write_review_queue
+from land_registry_comparables import enrich_candidates_with_sold_comparables
+from lead_queue_export import export_review_queues
 
 BASE = "https://api.smartsheet.com/2.0"
 TOKEN = os.getenv("SMARTSHEET_API_TOKEN", "").strip()
@@ -353,7 +355,7 @@ def removal_updates(rows, cmap, seen_identities, scan_complete, scan_id):
             updates.append({"id": row["id"], "cells": cells})
     return updates
 
-def _write_scan_report(scan_id, discovered_count, open_market_count, open_market_scan_complete, status, error=None):
+def _write_scan_report(scan_id, discovered_count, open_market_count, open_market_scan_complete, status, error=None, source_audit=None):
     payload = {
         "scan_id": scan_id,
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -362,6 +364,7 @@ def _write_scan_report(scan_id, discovered_count, open_market_count, open_market
         "open_market_scan_complete": bool(open_market_scan_complete),
         "status": status,
         "error": error,
+        "private_seller_source_audit": source_audit or {"sources": [], "approved_source_count": 0, "candidate_count": 0},
     }
     path = os.getenv("ATLAS_SCAN_REPORT_PATH", "property-agent-scan-report.json")
     try:
@@ -374,11 +377,7 @@ def run():
     scan_id = _scan_id()
     try:
         if DRY_RUN:
-            print("Dry-run health check passed. No Smartsheet reads or writes performed.")
-            dry_scan_id = _scan_id()
-            write_review_queue([], dry_scan_id)
-            _write_scan_report(dry_scan_id, 0, 0, False, "DRY_RUN")
-            return
+            print("DRY_RUN enabled: public-source discovery and local reporting are allowed; Smartsheet reads/writes are disabled.")
     
         # Public private-seller discovery runs before qualification. It only creates
         # candidate rows; it never contacts sellers or collects private contact data.
@@ -433,9 +432,48 @@ def run():
                 candidate["Planning Review Status"] = "Planning API error - council portal review required"
                 candidate["Planning Opportunity Summary"] = f"Planning scan failed ({type(planning_exc).__name__}); this is not evidence that no applications exist."
                 planning_processed += 1
+        # Official sold-price enrichment is opt-in, bounded, and read-only.
+        # It never sets current market value or BMV status automatically.
+        try:
+            comparable_limit = int(os.getenv("ATLAS_HMLR_COMPARABLES_MAX_LOOKUPS", "10"))
+            comparable_summary = enrich_candidates_with_sold_comparables(
+                discovered,
+                max_lookups=comparable_limit,
+            )
+            if comparable_summary.get("enabled"):
+                print(
+                    "HM Land Registry comparable lookup: "
+                    f"{comparable_summary.get('lookups', 0)} lookups, "
+                    f"{comparable_summary.get('enriched', 0)} candidates enriched, "
+                    f"{comparable_summary.get('errors', 0)} errors; human review required."
+                )
+        except Exception as comparable_exc:
+            print(f"HM Land Registry comparable enrichment skipped ({type(comparable_exc).__name__}); no valuation inferred.")
+
         # Local audit artifact only; no route data is written to Smartsheet.
         route_review = write_review_queue(discovered, scan_id)
         print(f"Contract route review queue created for {route_review['candidate_count']} candidates; no commitments or outreach performed.")
+        queue_export = export_review_queues(discovered)
+        queue_counts = ', '.join(f"{name}={details['count']}" for name, details in queue_export['queues'].items())
+        print(f"Local CSV review queues exported to {queue_export['directory']}: {queue_counts}; no contact, offers, referrals, publishing, or production writes performed.")
+
+        # Dry-run is discovery-only: finish public-source scans and local artifacts,
+        # then stop before any Smartsheet read/write or finance pipeline mutation.
+        if DRY_RUN:
+            _write_scan_report(
+                scan_id,
+                len(discovered),
+                len(open_market),
+                open_market_scan_complete,
+                "DRY_RUN_DISCOVERY_COMPLETE",
+                source_audit=last_discovery_report(),
+            )
+            print(
+                f"Dry-run discovery complete: {len(discovered)} candidates "
+                f"({len(open_market)} open-market listings); no Smartsheet reads/writes, "
+                "seller contact, offers, referrals, or publishing performed."
+            )
+            return
 
         ps, fs = get_sheet(PROPERTY_SHEET), get_sheet(FINANCE_SHEET)
         pc, fc = cols(ps), cols(fs)
@@ -524,6 +562,7 @@ def run():
                     "Previous Source URL", "Planning Review Status", "Planning Opportunity Summary",
                     "Planning Precedent Count", "Planning Same-Road Count", "Planning Potentially Approved Count", "Planning Search URL",
                     "Profit Estimate Status", "Estimated Net Profit Before Tax", "Estimated Completed Value", "Estimated Total Project Cost", "Geography Review Status",
+                    "Comparable Sales Evidence", "Comparable Sales Count", "Comparable Evidence Status",
                 }
                 cells = [{"columnId": pc[name], "value": value} for name, value in candidate.items()
                          if name in pc and name in discovery_fields and value is not None]
@@ -616,7 +655,7 @@ def run():
             updates.append({"id": target["id"], "cells": cells})
     
         result = put_rows(FINANCE_SHEET, updates)
-        _write_scan_report(scan_id, len(discovered), len(open_market), open_market_scan_complete, "SUCCESS")
+        _write_scan_report(scan_id, len(discovered), len(open_market), open_market_scan_complete, "SUCCESS", source_audit=last_discovery_report())
         print(f"Property agent engine processed {len(updates)} finance records.")
         if result:
             print(f"Smartsheet update resultCode={result.get('resultCode')} message={result.get('message')}")
@@ -629,6 +668,7 @@ def run():
             False,
             "FAILED",
             error=f"{type(exc).__name__}: {exc}",
+            source_audit=last_discovery_report(),
         )
         raise
 
