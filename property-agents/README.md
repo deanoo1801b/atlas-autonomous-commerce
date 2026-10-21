@@ -128,3 +128,14 @@ The BMV queue does not independently verify market value, comparability, ownersh
 The GitHub Actions property-engine workflow uploads any generated CSV queues as a downloadable artifact named `inspiration-properties-local-review-queues`. The run remains in dry-run mode; an empty queue means no candidate was found by that run, not that no opportunities exist.
 
 No queue export authorizes seller contact, an offer, a finance referral, publication, or production-system writes. Enable a source only after the relevant current terms, licence and written permissions (where required) have been reviewed. See [SOURCES.md](SOURCES.md) and [COMPLIANCE.md](COMPLIANCE.md).
+
+
+## Read-only Official Source Health Check
+
+Run the manually triggered GitHub Actions workflow **Inspiration Properties Source Health Check** to check two official data routes without touching listing portals or business systems. It performs a bounded HM Land Registry Price Paid Data query and checks whether the national Planning Data API's `planning-application` dataset returns a sample record. The JSON report is uploaded as an artifact.
+
+Important:
+- This is a source/API health check, not property discovery and not proof of live deals.
+- As checked on 21 October 2026, the official national planning-application dataset page reports zero records and no data providers. Treat an empty response as a coverage warning and check the relevant council planning register; do not interpret it as a negative search result. See [the official dataset status page](https://www.planning.data.gov.uk/dataset/planning-application).
+- HM Land Registry sample records are sold transactions, not current listings, valuations, seller intent, or proof of a BMV deal. Preserve required attribution and review third-party address-data restrictions before redistribution.
+- This workflow uses only official public endpoints. It does not scrape Rightmove or private-seller sites, contact anyone, create property candidates, refer finance cases, or write to production systems.
