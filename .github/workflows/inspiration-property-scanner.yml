@@ -1,0 +1,37 @@
+name: Inspiration Properties Background Scanner
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: inspiration-properties-background-scanner
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run public-source opportunity scan
+        run: python agents/property_opportunity_scanner.py
+
+      - name: Save scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: inspiration-property-scan-${{ github.run_number }}
+          path: property-agent-output/
+          if-no-files-found: error
+          retention-days: 14
