@@ -96,6 +96,11 @@ def get_products() -> list[dict[str, Any]]:
     return usable
 
 
+def blog_gid() -> str:
+    # Accept either the Shopify GraphQL GID or the numeric blog ID from Admin.
+    return BLOG_ID if BLOG_ID.startswith("gid://shopify/Blog/") else f"gid://shopify/Blog/{BLOG_ID}"
+
+
 def existing_recent_titles() -> list[str]:
     query = """
     query AtlasRecentArticles($blogId: ID!) {
@@ -106,7 +111,7 @@ def existing_recent_titles() -> list[str]:
       }
     }
     """
-    data = shopify_graphql(query, {"blogId": BLOG_ID})
+    data = shopify_graphql(query, {"blogId": blog_gid()})
     blog = data.get("blog") or {}
     return [a.get("title", "") for a in (blog.get("articles") or {}).get("nodes", []) if a.get("title")]
 
@@ -182,10 +187,9 @@ def create_draft(article: dict[str, str]) -> str:
     """
     variables = {
         "article": {
-            "blogId": BLOG_ID,
+            "blogId": blog_gid(),
             "title": article["title"].strip(),
             "body": article["html"],
-            "summary": article["meta_description"].strip(),
             "isPublished": False,
         }
     }
