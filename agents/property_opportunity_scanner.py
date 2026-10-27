@@ -17,6 +17,8 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from property_query_classifier import is_rent_to_buy_query
+
 AREAS = ["Dartford", "Gravesend", "Grays Essex", "Croydon", "Lambeth"]
 RENT_TO_BUY_AREAS = ["Dartford", "Grays Essex"]
 RENT_TO_BUY_TERMS = [
@@ -84,12 +86,7 @@ for query in QUERIES:
             if key in seen:
                 continue
             seen.add(key)
-            # Recognise all Rent to Buy query variants, including provider discovery
-            # queries that do not contain one of the full term strings above.
-            query_lower = query.lower()
-            is_rtb = any(phrase in query_lower for phrase in (
-                '"rent to buy"', '"rent-to-buy"', '"rent then buy"', '"intermediate rent"'
-            ))
+            is_rtb = is_rent_to_buy_query(query)
             rows.append({
                 "scanned_at_utc": now,
                 "query": query,
