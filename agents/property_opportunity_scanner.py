@@ -77,14 +77,19 @@ for query in QUERIES:
             publisher = (source.text or "").strip() if source is not None else ""
             description = html.unescape(item.findtext("description") or "")
             description = re.sub(r"<[^>]+>", " ", description)
-            description = re.sub(r"\s+", " ", description).strip()
+            description = re.sub(r"\\s+", " ", description).strip()
             if not title or not link:
                 continue
             key = hashlib.sha256((title + link).encode()).hexdigest()
             if key in seen:
                 continue
             seen.add(key)
-            is_rtb = any(term.lower() in query.lower() for term in RENT_TO_BUY_TERMS)
+            # Recognise all Rent to Buy query variants, including provider discovery
+            # queries that do not contain one of the full term strings above.
+            query_lower = query.lower()
+            is_rtb = any(phrase in query_lower for phrase in (
+                '"rent to buy"', '"rent-to-buy"', '"rent then buy"', '"intermediate rent"'
+            ))
             rows.append({
                 "scanned_at_utc": now,
                 "query": query,
