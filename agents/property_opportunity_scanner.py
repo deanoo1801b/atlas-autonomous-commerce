@@ -17,6 +17,8 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from property_query_classifier import is_rent_to_buy_query
+
 AREAS = ["Dartford", "Gravesend", "Grays Essex", "Croydon", "Lambeth"]
 RENT_TO_BUY_AREAS = ["Dartford", "Grays Essex"]
 RENT_TO_BUY_TERMS = [
@@ -84,7 +86,7 @@ for query in QUERIES:
             if key in seen:
                 continue
             seen.add(key)
-            is_rtb = any(term.lower() in query.lower() for term in RENT_TO_BUY_TERMS)
+            is_rtb = is_rent_to_buy_query(query)
             rows.append({
                 "scanned_at_utc": now,
                 "query": query,
