@@ -77,7 +77,7 @@ for query in QUERIES:
             publisher = (source.text or "").strip() if source is not None else ""
             description = html.unescape(item.findtext("description") or "")
             description = re.sub(r"<[^>]+>", " ", description)
-            description = re.sub(r"\\s+", " ", description).strip()
+            description = re.sub(r"\s+", " ", description).strip()
             if not title or not link:
                 continue
             key = hashlib.sha256((title + link).encode()).hexdigest()
