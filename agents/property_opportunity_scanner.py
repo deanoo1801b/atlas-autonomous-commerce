@@ -17,7 +17,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from property_query_classifier import is_rent_to_buy_query
+from property_query_classifier import is_rent_to_buy_query, is_london_living_rent_signal
 from rent_to_buy_search_config import build_rent_to_buy_queries
 
 AREAS = ["Dartford", "Gravesend", "Grays Essex", "Croydon", "Lambeth"]
@@ -77,10 +77,18 @@ for query in QUERIES:
                 continue
             seen.add(key)
             is_rtb = is_rent_to_buy_query(query)
+            result_text = f"{title} {description}"
+            is_llr = is_london_living_rent_signal(result_text)
+            category = (
+                "HOUSING_REQUIREMENT_LONDON_INTERMEDIATE_RENT"
+                if is_rtb and is_llr else
+                "HOUSING_REQUIREMENT_RENT_TO_BUY"
+                if is_rtb else "PROPERTY_RESEARCH_SIGNAL"
+            )
             rows.append({
                 "scanned_at_utc": now,
                 "query": query,
-                "lead_category": "HOUSING_REQUIREMENT_RENT_TO_BUY" if is_rtb else "PROPERTY_RESEARCH_SIGNAL",
+                "lead_category": category,
                 "title": title,
                 "published_at": published,
                 "publisher": publisher,
@@ -91,7 +99,8 @@ for query in QUERIES:
                 "contacted": "NO",
                 "requirement_note": (
                     "Seeking a 2- or 3-bedroom house across London and surrounding areas; up to £2,000/month; "
-                    "exclude shared ownership. Confirm scheme, property type and availability with provider."
+                    "exclude shared ownership. Confirm scheme, property type and availability with provider. "
+                    + ("London Living Rent can lead toward shared ownership; do not treat as a match unless that route is acceptable." if is_llr else "")
                     if is_rtb else ""
                 ),
             })
@@ -111,7 +120,8 @@ with csv_path.open("w", newline="", encoding="utf-8") as handle:
     writer.writeheader()
     writer.writerows(rows)
 
-rtb_count = sum(row["lead_category"] == "HOUSING_REQUIREMENT_RENT_TO_BUY" for row in rows)
+rtb_count = sum(row["lead_category"] in {"HOUSING_REQUIREMENT_RENT_TO_BUY", "HOUSING_REQUIREMENT_LONDON_INTERMEDIATE_RENT"} for row in rows)
+llr_count = sum(row["lead_category"] == "HOUSING_REQUIREMENT_LONDON_INTERMEDIATE_RENT" for row in rows)
 summary = OUT / "scan-summary.md"
 summary.write_text(
     "# Inspiration Properties UK — background research scan\n\n"
