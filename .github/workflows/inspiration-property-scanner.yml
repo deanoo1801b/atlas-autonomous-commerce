@@ -2,6 +2,15 @@ name: Inspiration Properties Background Scanner
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: ["main", "fix/property-rent-to-buy-classification"]
+    paths:
+      - "agents/property_opportunity_scanner.py"
+      - "agents/property_query_classifier.py"
+      - "agents/rent_to_buy_search_config.py"
+      - "agents/rent_to_buy_source_directory.json"
+      - "tests/test_property_scanner_dry_run.py"
+      - ".github/workflows/inspiration-property-scanner.yml"
   schedule:
     - cron: "17 */6 * * *"
 
@@ -29,12 +38,15 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_property_scanner_dry_run.py' -v
 
       - name: Run public-source opportunity scan
+        if: github.event_name != 'pull_request'
         run: python agents/property_opportunity_scanner.py
 
       - name: Prepare non-writing Smartsheet dry-run
+        if: github.event_name != 'pull_request'
         run: python agents/property_scanner_dry_run.py
 
       - name: Save scan and dry-run results
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: inspiration-property-scan-${{ github.run_number }}
