@@ -120,7 +120,7 @@ with csv_path.open("w", newline="", encoding="utf-8") as handle:
     writer.writeheader()
     writer.writerows(rows)
 
-rtb_count = sum(row["lead_category"] in {"HOUSING_REQUIREMENT_RENT_TO_BUY", "HOUSING_REQUIREMENT_LONDON_INTERMEDIATE_RENT"} for row in rows)
+rtb_count = sum(row["lead_category"] == "HOUSING_REQUIREMENT_RENT_TO_BUY" for row in rows)
 llr_count = sum(row["lead_category"] == "HOUSING_REQUIREMENT_LONDON_INTERMEDIATE_RENT" for row in rows)
 summary = OUT / "scan-summary.md"
 summary.write_text(
