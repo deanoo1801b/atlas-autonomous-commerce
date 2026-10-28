@@ -5,6 +5,7 @@ RENT_TO_BUY_PHRASES = (
     '"rent-to-buy"',
     '"rent then buy"',
     '"intermediate rent"',
+    '"london living rent"',
 )
 
 
