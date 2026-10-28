@@ -3,6 +3,7 @@ import tempfile
 import unittest
 
 from agents.property_query_classifier import is_rent_to_buy_query
+from agents.rent_to_buy_search_config import LONDON_BOROUGHS, SURROUNDING_AREAS, build_rent_to_buy_queries
 from pathlib import Path
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "agents" / "property_scanner_dry_run.py"
@@ -17,10 +18,23 @@ class RentToBuyClassificationTests(unittest.TestCase):
             '"rent-to-buy" home "Grays Essex"',
             '"rent then buy" house "Dartford"',
             '"intermediate rent" "purchase" "Grays Essex"',
+            '"London Living Rent" "Hounslow" housing provider',
         ]
         for query in queries:
             with self.subTest(query=query):
                 self.assertTrue(is_rent_to_buy_query(query))
+
+    def test_search_covers_london_and_commuter_belt(self):
+        queries = build_rent_to_buy_queries()
+        joined = " ".join(queries)
+        self.assertIn("London", joined)
+        self.assertIn("Hounslow", joined)
+        self.assertIn("Dartford", joined)
+        self.assertIn("Grays", joined)
+        self.assertIn("Reading", joined)
+        self.assertGreaterEqual(len(LONDON_BOROUGHS), 32)
+        self.assertGreaterEqual(len(SURROUNDING_AREAS), 30)
+        self.assertTrue(all(is_rent_to_buy_query(q) for q in queries))
 
     def test_does_not_classify_general_property_search(self):
         self.assertFalse(is_rent_to_buy_query('"property auction" house "Dartford"'))
