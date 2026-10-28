@@ -1,0 +1,59 @@
+{
+  "purpose": "Reference directory for human-reviewed Rent to Buy and London affordable-rent discovery. This is not a live availability feed.",
+  "requirement": {
+    "bedrooms": [2, 3],
+    "property_type": "house",
+    "maximum_monthly_rent_gbp": 2000,
+    "exclude": ["shared ownership"],
+    "verification": "Confirm scheme, property type, bedroom count, rent, location, availability, eligibility and purchase route directly with provider."
+  },
+  "sources": [
+    {
+      "name": "GOV.UK Rent to Buy overview",
+      "url": "https://www.gov.uk/rent-to-buy",
+      "coverage": "England outside London",
+      "role": "Official scheme explanation"
+    },
+    {
+      "name": "GOV.UK Rent to Buy how to apply",
+      "url": "https://www.gov.uk/rent-to-buy/how-to-apply",
+      "coverage": "England outside London",
+      "role": "Official provider search and local council/housing association guidance"
+    },
+    {
+      "name": "Homes for Londoners property search",
+      "url": "https://homes.london.gov.uk/properties/",
+      "coverage": "Greater London",
+      "role": "Official portal; filter renting schemes, London Living Rent or intermediate rent, beds, property type, monthly cost and availability"
+    },
+    {
+      "name": "Mayor of London London Living Rent information",
+      "url": "https://www.london.gov.uk/programmes-strategies/housing-and-land/buying-and-owning-home/london-living-rent",
+      "coverage": "Greater London",
+      "role": "Official scheme terms, eligibility and rent benchmark context"
+    },
+    {
+      "name": "Notting Hill Genesis London Living Rent",
+      "url": "https://www.nhg.org.uk/your-next-home/london-living-rent/",
+      "coverage": "Greater London",
+      "role": "Provider scheme page; availability must be checked live"
+    },
+    {
+      "name": "RHP London Living Rent",
+      "url": "https://www.rhp.org.uk/homeownership/london-living-rent",
+      "coverage": "Greater London",
+      "role": "Provider scheme explanation and advertised route"
+    },
+    {
+      "name": "Kent Homechoice registered provider partners",
+      "url": "https://www.kenthomechoice.org.uk/content/registered-provider-partners",
+      "coverage": "Kent",
+      "role": "Provider directory for Kent; not itself proof of Rent to Buy inventory"
+    }
+  ],
+  "safety": [
+    "Search results and provider directory links are research signals, not confirmed homes.",
+    "London Living Rent is a distinct London intermediate-rent route; its pathway may involve shared ownership, so it must not be treated as satisfying a strict no-shared-ownership requirement without explicit user acceptance.",
+    "No automatic outreach or Smartsheet writes."
+  ]
+}
