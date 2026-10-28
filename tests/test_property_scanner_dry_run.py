@@ -2,7 +2,7 @@ import importlib.util
 import tempfile
 import unittest
 
-from agents.property_query_classifier import is_rent_to_buy_query
+from agents.property_query_classifier import is_rent_to_buy_query, is_london_living_rent_signal
 from agents.rent_to_buy_search_config import LONDON_BOROUGHS, SURROUNDING_AREAS, build_rent_to_buy_queries
 from pathlib import Path
 
@@ -23,6 +23,10 @@ class RentToBuyClassificationTests(unittest.TestCase):
         for query in queries:
             with self.subTest(query=query):
                 self.assertTrue(is_rent_to_buy_query(query))
+
+    def test_london_living_rent_signal_is_separately_flagged(self):
+        self.assertTrue(is_london_living_rent_signal("Available London Living Rent home"))
+        self.assertFalse(is_london_living_rent_signal("Rent to Buy home in Kent"))
 
     def test_search_covers_london_and_commuter_belt(self):
         queries = build_rent_to_buy_queries()
