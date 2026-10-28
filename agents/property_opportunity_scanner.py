@@ -18,15 +18,9 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from property_query_classifier import is_rent_to_buy_query
+from rent_to_buy_search_config import build_rent_to_buy_queries
 
 AREAS = ["Dartford", "Gravesend", "Grays Essex", "Croydon", "Lambeth"]
-RENT_TO_BUY_AREAS = ["Dartford", "Grays Essex"]
-RENT_TO_BUY_TERMS = [
-    '"Rent to Buy" house',
-    '"rent-to-buy" home',
-    '"rent then buy" house',
-    '"intermediate rent" "purchase"',
-]
 PROPERTY_TERMS = [
     '"property auction" house',
     '"price reduced" house property',
@@ -44,13 +38,9 @@ def build_queries():
     for area in AREAS:
         for term in PROPERTY_TERMS:
             queries.append(f'{term} "{area}"')
-    # Separate housing requirement: genuine Rent to Buy, not shared ownership.
-    for area in RENT_TO_BUY_AREAS:
-        for term in RENT_TO_BUY_TERMS:
-            queries.append(f'{term} "{area}" "2 bedroom" OR "3 bedroom"')
-    # General provider pages and developments may not mention bedrooms in snippet.
-    for area in RENT_TO_BUY_AREAS:
-        queries.append(f'"Rent to Buy" "{area}" housing provider')
+    # Expanded housing search: London boroughs and surrounding commuter areas.
+    # Includes London Living Rent and intermediate-rent terminology for London.
+    queries.extend(build_rent_to_buy_queries())
     return queries
 
 QUERIES = build_queries()
@@ -100,8 +90,8 @@ for query in QUERIES:
                 "lead_score": "",
                 "contacted": "NO",
                 "requirement_note": (
-                    "Seeking 2- or 3-bedroom house in Dartford or Grays; up to £2,000/month; "
-                    "not shared ownership. Confirm genuine Rent to Buy and availability with provider."
+                    "Seeking a 2- or 3-bedroom house across London and surrounding areas; up to £2,000/month; "
+                    "exclude shared ownership. Confirm scheme, property type and availability with provider."
                     if is_rtb else ""
                 ),
             })
@@ -128,7 +118,7 @@ summary.write_text(
     f"- Scan time (UTC): {now}\n"
     f"- Queries attempted: {len(QUERIES)}\n"
     f"- Unique public research results: {len(rows)}\n"
-    f"- Rent to Buy research signals (Dartford/Grays): {rtb_count}\n"
+    f"- Rent to Buy / London Living Rent research signals (London and surrounding region): {rtb_count}\n"
     f"- Query failures: {len(failures)}\n"
     "- Output: property-opportunities.csv\n\n"
     "## Important qualification\n"
